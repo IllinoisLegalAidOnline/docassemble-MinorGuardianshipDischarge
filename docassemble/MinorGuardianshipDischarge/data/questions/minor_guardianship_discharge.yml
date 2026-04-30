@@ -1,0 +1,816 @@
+metadata:
+  title: Minor guardianship discharge
+  short title: Minor guardianship discharge
+  comment: This program helps you ask the court to end the guardianship of a child.
+  authors:
+    - Vivian McNaughton
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ILAO:ilao-interview-framework.yml
+  - docassemble.ILAO:shared-basic-questions.yml
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True)
+  - other_parties: ALPeopleList.using(there_are_any=True)
+  - child: ALIndividual
+
+
+---
+code: |
+  al_form_type = 'starts_case'
+  ilao_easy_form_title = "Minor guardianship discharge"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/minor-guardianship-discharge"
+  form_name = "Petition to Discharge Guardianship of a Minor"
+  github_user = 'IllinoisLegalAidOnline'
+  github_repo_name = 'docassemble-MinorGuardianshipDischarge'
+  allowed_courts = ['Circuit']
+---
+sections:
+  - section_intro: Start
+  - section_child: Child
+  - section_guardian: Guardian
+  - section_family: Child's parents, caregivers, and relatives
+  - section_user: About you
+  - section_filing: Court and filing details
+  - section_download: Download
+---
+# interview order block
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  sees_nav_bar
+  snapshot_start
+  how_to_use
+  set_progress(5)
+  basic_info
+  accept_terms
+  whats_next
+
+  nav.set_section('section_child')
+  child.name.first
+  if not user_qualified:
+    ineligible_kickout
+  if child.age_in_years() >= 18:
+    child_too_old
+  if child.address.state != 'IL':
+    child_outside_illinois
+
+  nav.set_section('section_guardian')
+  other_parties[0].name.first
+  get_address(other_parties[0], child)
+  guardianship_date
+  original_county_index
+  why_started
+  why_end
+  if other_parties[0].knows_delivery_method:
+    other_parties[0].hand_delivery
+    other_parties[0].delivery_date
+
+  nav.set_section('section_family')
+  if other_relatives:
+    other_parties.gather()
+  others_agree
+
+  nav.set_section('section_user')
+  users[0].name.first
+  users[0].address.address
+  users[0].has_email_address
+  #users[0].housing
+
+  nav.set_section('section_filing')
+  if trial_court_index == -1:
+    cook_district
+
+  set_progress(100)
+  nav.set_section('section_download')
+  forms_assembling
+  get_docs_screen
+
+---
+#other parties gather loop
+code: |
+  other_parties[i].name.first
+  if i != 0:
+    other_parties[i].relationship
+    if not other_parties[i].live_with:
+      if other_parties[i].address_known:
+        other_parties[i].address.address
+      else:
+        other_parties[i].notice_by_publication
+    if other_parties[i].knows_delivery_method:
+      other_parties[i].hand_delivery
+      other_parties[i].delivery_date
+  else:
+    other_parties.there_is_another = True
+---
+code: |
+  stuff_to_snapshot = {
+  	'start_time': str(current_datetime().format_datetime()),
+  	'started_interview': True, 
+  	}
+
+  try:
+    stuff_to_snapshot['ip_address'] = device(ip=True)
+  except:
+    pass
+
+  stuff_to_snapshot['zip'] = showifdef('users[0].address.zip')
+
+  stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+  
+  try:
+    stuff_to_snapshot['session_id'] = current_context().session
+  except:
+    pass
+  
+  store_variables_snapshot(
+  	data=stuff_to_snapshot, persistent=True
+  	)
+  snapshot_interview_state = True
+---
+code: |
+  snapshot_interview_state
+  snapshot_start = True  
+---
+code: |
+  reconsider('snapshot_interview_state')
+  snapshot_forms = True
+---
+id: welcome
+question: |
+  Discharge guardianship of a child
+subquestion: |
+  Welcome to Illinois Legal Aid Online's **Discharge guardianship of a child** Easy Form.
+
+  This program helps you make a *Petition to discharge guardianship of a child*. Use it if you want a court to end the guardianship of your child and give you custody again.
+  
+  **Note:** If you want to discharge the guardianship of more than one child, you will have to make a separate set of forms for each child.
+ 
+  To learn more, read ILAO's article about [**ending a guardianship**](https://www.illinoislegalaid.org/node/30466).
+field: sees_nav_bar
+---
+id: instructions
+continue button field: how_to_use
+question: |
+  Instructions
+subquestion: |
+  To fill out the forms, you will need to know:
+
+  * Name, birthdate, and address of the child,
+  * Name and address of the child's current guardian,
+  * Why and when the guardianship started, 
+  * What changed so that the guardianship is no longer needed,
+  * Names and addresses of the child's nearest relatives and anyone who has had custody of the child, and
+  * Your name, address, and living situation.
+
+  Set aside 10 to 20 minutes to finish this program. You can log in and save your work to continue later. 
+ 
+  ${ collapse_template(help_example) }  
+
+  Click on **{green words}** to learn what they mean. Some questions have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that also gives help.
+---
+template: help_example
+subject: |
+  **You can click sections like this to show more information.**
+content: |  
+  This is an example of help. Click again to hide.
+---
+id: basic guardianship info
+continue button field: basic_info
+question: |
+  About guardians
+subquestion: |
+  Your child's guardian is the person a judge has appointed to care for and make decisions for your child.
+
+  You can use this program if your child has a court-appointed guardian and you are a legal parent of your child. If your child has a short-term guardian, you do not need to use this program.
+
+  The court will want to know why they should end the guardianship. You will need to explain why the guardianship started and why it is no longer needed.
+---
+id: whats next
+continue button field: whats_next
+question: |
+  After you finish this program
+subquestion: |
+  Once you download your forms, you must file them with the court. This program **does not file** your forms for you. When you file your forms, you will get a date for a court hearing where a judge will review your case.
+
+  After you file the *${ form_name }* and get a court date, you will need to give notice to the child's parents and close relatives. This ensures that everyone involved is aware of the case and has a chance to respond or appear in court.
+
+  Finally, you will need to attend a court hearing where a judge will consider the reasons why ending the guardianship is in the child's best interest.
+  
+  **Note:** Filing forms, scheduling court dates, and giving notice are done differently depending on where you live. You may need to ask your local Circuit Clerk for details. To learn more, read the instructions you can download at the end of this program. 
+---
+id: child name
+question: |
+  What is the name of the child whose guardianship you want to end?
+fields:
+  - code: |
+      child.name_fields()
+---
+id: user_qualified
+question: |
+  Are you ${child.name_full()}'s parent?
+subquestion: |
+  If you are ${child.name_full()}'s biological parent or legal adoptive parent, click **Yes**.
+fields:
+  - no label: user_qualified
+    datatype: yesnoradio
+---
+id: ineligible kickout
+event: ineligible_kickout
+question: |
+  Sorry
+subquestion: |
+  You must be a parent trying to regain guardianship of a child to use this program.
+
+  Click **Back** if you made a mistake, or you can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: child birthdate
+question: |
+  When was ${child.name_full()} born?
+subquestion: |
+  **Note:** If the child is undocumented and under 21, talk with an immigration lawyer to see if the child is eligible for **[Special Immigrant Juvenile Status](https://www.uscis.gov/working-in-US/eb4/SIJ)** before you file this form. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+fields:
+  - Birthdate: child.birthdate
+    datatype: BirthDate
+    alMax: ${ today().format("yyyy-MM-dd") }
+---
+id: child too old kick out
+event: child_too_old
+question: |
+  Sorry
+subquestion: |
+  Based on your answers, ${child.name_full()} is no longer a minor child. The guardianship of a child automatically ends once the child turns 18 years old.
+
+  This program cannot be used to end the guardianship of an adult. For more information about adult guardianships, check out ILAO's article about [**changing adult guardianship**](https://www.illinoislegalaid.org/node/97451).
+  
+  Click **Back** if you made a mistake, or you can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: child address
+question: |
+  What is ${child.name_full()}'s current address?
+subquestion: |
+  **Note:** This address will appear on your forms.
+fields:
+  - Street address: child.address.address
+    address autocomplete: True
+  - Address line 2: child.address.unit
+    required: False
+  - City: child.address.city
+  - State: child.address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP code: child.address.zip
+---
+id: child outside illinois kick out
+event: child_outside_illinois
+question: |
+  Sorry
+subquestion: |
+  Based on your answers, ${child.name_full()} does not live in Illinois. This is a requirement for asking to discharge guardianship of a child in Illinois.
+
+  If you want to file for discharge outside Illinois, you can use the [**Legal Services Corporation website**](https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help) to find a legal aid organization in another state.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+sets:
+  - other_parties[0].name.first
+id: current guardian name
+question: |
+  Who is the current legal guardian of ${child.name_full()}?
+subquestion: |
+  This is the person who you want to stop being ${child/name_full()}'s guardian.
+fields:
+  - code: |
+      other_parties[0].name_fields()
+---
+code: |
+  def get_address(person, child):
+    if person.lives_with_child:
+      person.address = child.address.copy_deep(person.attr_name('address'))
+      person.address.known = True
+    else:
+      person.address.address
+    return
+---
+id: guardian address
+question: |
+  What is ${other_parties[0].name_full()}'s current address?
+fields:
+  - Street address: other_parties[0].address.address
+    address autocomplete: True
+  - Address line 2: other_parties[0].address.unit
+    required: False
+  - City: other_parties[0].address.city
+  - State: other_parties[0].address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP code: other_parties[0].address.zip
+---
+id: guardian lives with child
+question: |
+  Does ${other_parties[0].name_full()} live with ${child.name_full()}?
+subquestion: |
+  If ${other_parties[0].name_full()} lives at ${child.address.on_one_line(bare=True)}, click **Yes**.
+fields:
+  - no label: other_parties[0].lives_with_child
+    datatype: yesnoradio
+---
+id: guardianship date
+question: |
+  When was ${other_parties[0].name_full()} appointed as guardian?
+subquestion: |
+  This date should be listed on the court order that appointed them.
+fields:
+  - Date: guardianship_date
+    min: ${today().minus(years=18)}
+    max: ${today()}
+---
+id: original county
+question: |
+  In which county is the court that appointed ${other_parties[0].name_full()} as guardian?
+subquestion: |
+  This may or may not be a different county than the one ${other_parties[0].name_full()} lives in
+fields:
+  - County: original_county_index
+    datatype: integer
+    code: |
+      court_county_lookup()
+---
+depends on:
+  - original_county_index
+code: |
+  if original_county_index == -1:
+    original_court = court_list.as_court('original_court', 15)
+    original_court .address.county = "Cook"
+  else:
+    original_court = court_list.as_court('original_court ', original_county_index)
+---
+id: why started
+question: |
+  Why was a guardianship of ${child.name_full()} set up?
+subquestion: |
+  Explain why ${other_parties[0].name_full()} was appointed as ${child.name_full()}'s guardian. For example, there may have been a period of time when you were not available to provide care.
+fields:
+  - When the guardian was appointed, the circumstances were: why_started
+    input type: area
+    maxlength: 500
+    label above field: True
+---
+id: why end
+question: |
+  What has changed so that ${other_parties[0].name_full()} no longer needs to be ${child.name_full()}'s guardian?
+subquestion: |
+  Explain why ${other_parties[0].name_full()} does not need to be ${child.name_full()}'s guardian. For example, you or another family member may now be available to care for ${child.name_full()}.
+fields:
+  - The new circumstances are : why_end
+    input type: area
+    maxlength: 500
+    label above field: True
+---
+id: other relatives
+question: |
+  About ${child.name_full()}'s other relatives
+subquestion: |
+  People closely related to ${child.name_full()} will need to be notified about the discharge. These people include:
+
+  * ${child.name_full()}'s parents,
+  * ${child.name_full()}'s adult siblings.
+  * ${child.name_full()}'s spouse,
+  * An adult who lives with and takes care of ${child.name_full()},
+  * Anyone who has had custody of ${child.name_full()}, and
+  * ${child.name_full()}'s "Guardian ad Litem," if one is assigned.
+
+  You will need to list the names of anyone related to ${child.name_full()} in these ways.
+fields:
+  - Does ${child.name_full()} have other relatives who need to be notified?: other_relatives
+    datatype: yesnoradio
+---
+sets:
+  - other_parties[i].name.first
+id: other parties name
+question: |
+  Who is the ${ordinal(i-1)} person related to ${child.name_full()} you need to notify?
+subquestion: |
+  ${collapse_template(list_reminder)}
+fields:
+  - code: |
+      other_parties[i].name_fields()
+---
+template: list_reminder
+subject: |
+  **People who need to be notified**
+content: |
+  The following people need to be notified:
+  
+  * ${child.name_full()}'s parents,
+  * ${child.name_full()}'s adult siblings.
+  * ${child.name_full()}'s spouse,
+  * Anyone who has had custody of ${child.name_full()}, and
+  * ${child.name_full()}'s "Guardian ad Litem," if one is assigned.
+---
+id: there is another other parties
+question: |
+  Do you need to notify anyone else?
+subquestion: |
+  So far you told us about ${fix_punctuation(other_parties.full_names())}
+
+  ${collapse_template(list_reminder)}
+fields:
+  - "Anyone else?": other_parties.there_is_another
+    datatype: yesnoradio
+---
+id: other parties relationship
+question: |
+  How is ${other_parties[i].name_full()} related to ${child.name_full()}?
+fields:
+  - ${other_parties[i].name_full()} is:: other_parties[i].relationship
+    input type: radio
+    choices: 
+      - "${child.name_full()}'s biological or adoptive **parent**": parent
+      - "${ child.name_full()}'s **sibling** who is at least 18 years old": sibling
+      - "Some **other adult** who has had **legal or physical custody** of ${ child.name_full()}": custody
+      - "${child.name_full()}'s **spouse**": spouse
+      - "${child.name_full()}'s **Guardian ad Litem**": gal
+      - "A person with a **different relationship** to ${child.name_full()}": other
+---
+id: other parties live with
+question: |
+  Does ${other_parties[i].name_full()} live with ${child.name_full()}?
+subquestion: |
+  Earlier, you said ${child.name_full()} lives at ${child.address.on_one_line(bare=True)}. If ${other_parties[i].name_full()} also lives at that address, click **Yes**.
+fields:
+  - no label: other_parties[i].live_with
+    datatype: yesnoradio
+---
+id: know other parties address
+question: |
+  Do you know ${other_parties[i].name_full()}'s address?
+subquestion: |
+  Their address may be listed on the guardianship order.
+ 
+  If you do not know their current address but you do know their previous address, you can click **Yes** and enter that address.
+fields:
+  - no label: other_parties[0].address.known
+    datatype: yesnoradio
+---
+id: other parties address
+question: |
+  What is ${other_parties[i].name_full()}'s address?
+fields:
+  - Street address: other_parties[i].address.address
+    address autocomplete: True
+  - Address line 2: other_parties[i].address.unit
+    required: False
+  - City: other_parties[i].address.city
+  - State: other_parties[i].address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP code: other_parties[i].address.zip
+    required: False
+---
+id: notice options for unknown address
+generic object: ALIndividual
+continue button field: x.notice_options
+question: |
+  Notifying ${x.name_full()}
+subquestion: |  
+  You should try and find ${x.name_full()}'s address or another way to give them notice. If you know their email address, you can give them notice by email.
+
+  If you cannot find a way to give ${x.name_full()} notice, the court may want you to publish notice of the discharge case in a newspaper. You may want to discuss this with a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+---
+id: knows delivery method
+generic object: ALIndividual
+question: |
+  Do you know **how** and **when** you will send your forms to ${ x.name_full() }?
+subquestion: |
+  ${ collapse_template(delivery_method_help) }  
+
+  You must deliver the *Petition to Discharge Guardianship of a Minor* and the *Notice of Hearing* at least **7 days** before the court date. You must deliver paper copies of your forms. You cannot use email. 
+
+  If you do not know this now, you can add it to the Proof of Delivery section of your forms later.
+fields:
+  - no label: x.knows_delivery_method
+    datatype: radio
+    choices:
+      - Yes: True
+      - No. I do not know this now. I will add it to my forms later.: False
+---
+template: delivery_method_help
+subject: |
+  **What are my delivery options?**
+content: |  
+  You can deliver the forms by:
+  
+  * Personal hand delivery, or
+  * US mail or a delivery company (like UPS or FedEx), with postage or delivery prepaid.
+
+  If you are in a prison or jail, you can deliver by mail.
+---
+id: all party delivery method
+generic object: ALIndividual
+question: |
+  How will you send your forms to ${ x.name_full() }?
+subquestion: |
+  You must deliver your forms by hand, by mail, through a delivery company. You cannot use email.
+  
+  If you do not know this now, be sure to add it to the Proof of Delivery section of your forms later.
+fields:
+  - "I will personally **hand-deliver** the forms. **Note:** You can only deliver to the person or to their family member who is age 13 or older at their home.": x.hand_delivery
+    datatype: yesnowide
+    required: False
+  - I will send the forms by **US mail or a delivery company** (like UPS or FedEx).: x.mail_delivery
+    datatype: yesnowide
+    required: False
+  - Street address or intersection of mailbox or delivery company: x.delivery_mail_address
+    maxlength: 40
+    js show if: 
+      val("x.mail_delivery") == true
+    required: False
+  - City of mailbox or delivery company: x.delivery_mail_city
+    maxlength: 30
+    js show if: 
+      val("x.mail_delivery") == true
+    required: False
+  - State of mailbox or delivery company: x.delivery_mail_state
+    code: |
+      states_list()
+    js show if: 
+      val("x.mail_delivery") == true
+    required: False
+  - I will send the forms by mail from a **prison or jail**.: x.jail_delivery
+    datatype: yesnowide
+    required: False
+  - note: |
+      Enter prison or jail information
+    js show if: 
+      val("x.jail_delivery") == true
+  - Name of prison or jail: x.delivery_jail_name
+    maxlength: 40
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+  - Street address: x.jail_delivery_address.address
+    address autocomplete: True
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+  - Address line 2: x.jail_delivery_address.unit
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+  - City: x.jail_delivery_address.city
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+  - State: x.jail_delivery_address.state
+    code: |
+      states_list()
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+  - ZIP code: x.jail_delivery_address.zip
+    js show if: 
+      val("x.jail_delivery") == true
+    required: False
+---
+id: delivery time
+generic object: ALIndividual
+question: |
+  When will you send your forms to ${ x.name_full() }?
+subquestion: |
+  **Remember:** You must send the *Petition for Guardianship of a Minor* and the *Notice of Hearing* at least **7 days** before the court date.
+
+  If you do not know this now, be sure to add it to your forms later.
+fields:
+  - Date: x.delivery_date
+    datatype: date
+    required: False
+    min: ${ today() }
+    max: ${ today().plus(years=1) }
+  - Time: x.delivery_time
+    datatype: time
+    required: False
+validation code: |
+  if (not showifdef('x.delivery_date')):
+    x.knows_delivery_date = False
+  else:
+    x.knows_delivery_date = True
+  if (not showifdef('x.delivery_time')):
+    x.knows_delivery_time = False
+  else:
+    x.knows_delivery_time = True
+---
+id: others agreement
+continue button field: others_agree
+question: |
+  % if other_parties.number_gathered == 1:
+  About ${other_parties[0].name_full()}
+  % else:
+  About ${other_parties[0].name_full()} and the others
+  % endif
+subquestion: |
+  If ${other_parties[i].full_names(and_string=word("or"))} do not want the guardianship to be discharged, they may appear in court to tell the judge why.
+
+  If you think any of ${child.name_full()}'s relatives will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+---
+id: user name
+sets:
+    - users[0].name.first
+question:  |
+  What is your name?
+fields:
+  - code: |
+      users[0].name_fields()
+---
+id: user address
+question: |
+  What is your current address?
+subquestion: |
+  **Note:** This address will appear on your forms.
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP code: users[0].address.zip
+---
+id: your contact information
+question: |
+  What is your contact information?
+subquestion: |
+  The court or other parties might need to contact you about this case.
+
+  **This information will appear on your forms.**
+  
+  If you do not want to list a phone number on your forms, leave it blank.
+
+  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important court documents or information about your case.
+
+  ${ collapse_template(contact_info_help) }  
+fields:  
+  - Phone number: users[0].phone_number
+    datatype: al_international_phone
+    required: False
+  - label: |
+      Do you have an email address?
+    field: users[0].has_email_address      
+    datatype: yesnoradio
+  - note: |
+      This email address will appear on your forms. Be sure to check 
+      this email daily, otherwise you may miss important information about 
+      your case.
+    show if:
+      variable: users[0].has_email_address
+      is: True
+  - Email address: users[0].email    
+    datatype: email
+    show if: 
+      variable: users[0].has_email_address
+      is: True
+---
+template: contact_info_help
+subject: |
+  **What if I don't want to list my email address?**
+content: |  
+  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  
+  To make a new email account try one of these email services:
+  
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+#id: user housing
+#question: |
+#  What is your current housing situation?
+#subquestion: |
+#  The court will want to know that ${child.name_full()} will be in a safe, stable home.
+#
+#  The court may ask for proof of your current housing. You can bring a lease, utility bills, or other documents to your hearing.
+#
+#  ${collapse_template(example_answer)}
+#fields:
+#  - My current housing situation is: users[0].housing
+#   input type: area
+#   maxlength: 500
+#---
+#template: example_answer
+#subject: **Example answers**
+#content: |
+#  * "I have purchased a house with 3 bedrooms and 2 baths in Evanston. The house is well-maintained and up to code. The deed to the house is in my name"
+#  * "I have broken up with my boyfriend who struggled with alcohol abuse, and I am now the only person living in my 2-bedroom apartment in Chicago."
+#  * "I am renting a 2-bedroom apartment from a property management company. The rent is $1,500 a month, which is less than 20% of my income."
+---
+id: filing county
+question: |
+  In which county will you file your *${ form_name }*?
+subquestion: |
+  You should file in the county where ${child.name_full()} lives.
+fields:
+  - County: trial_court_index
+    datatype: integer
+    code: |
+      court_county_lookup()
+---
+code: |
+  def court_county_lookup(lowercase=False):
+    all_court_counties = court_list._load_courts()['address_county'].items()
+    filtered_courts = [(-1, "cook")] if lowercase else [(-1, "Cook")]
+    for court in all_court_counties:
+      if court[1] != "Cook":
+        court_name = court[1].lower() if lowercase else court[1]
+        filtered_courts.append((court[0],court_name))
+    return sorted( filtered_courts, key=lambda y: y[1])
+---
+depends on:
+  - trial_court_index
+code: |
+  if trial_court_index == -1:
+    trial_court = court_list.as_court('trial_court', 15)
+    trial_court.address.county = "Cook"
+  else:
+    trial_court = court_list.as_court('trial_court', trial_court_index)
+---
+id: Cook County district
+question: |
+  In which Cook County courthouse will you file your case?
+subquestion: |
+  If you are not sure, visit **[Illinois Court Help](https://www.ilcourthelp.gov/)**, or you can call or text (833) 411-1121 for assistance.
+field: cook_district
+choices:
+  - First Municipal District, Daley Center, 50 W. Washington Street, Chicago: 15
+  - Second Municipal District, 5600 Old Orchard Road, Skokie: 16
+  - Third Municipal District, 2121 Euclid Avenue, Rolling Meadows: 17
+  - Fourth Municipal District, 1500 Maybrook Drive, Maywood: 18
+  - Fifth Municipal District, 10220 S. 76th Avenue, Bridgeview: 19
+  - Sixth Municipal District, 16501 South Kedzie Parkway, Markham: 20
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |
+  
+  Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
+
+  Read the **instructions** for next steps on how to use the forms and notify others about the discharge case. 
+  
+  This program **does not file** your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+  
+  ${ al_user_bundle.download_list_html() }
+
+  [NEWLINE]
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  **Note:** This program **does not file** your forms with the court or deliver them to other parties in your case. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  
+  Thank you for using ILAO Easy Forms!
+under: |
+  % if not user_logged_in():
+  [${fa_icon("sign-in-alt", color="#0079d0", size="sm")} **Sign-in**](${url_of('login', next=interview_url())}) or [**create**](${url_of('register', next=interview_url())}) an ILAO Easy Form account to save your progress (optional).
+  % endif 
+
+  &nbsp;
+  ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Guardianship discharge forms
+content: |
+  Your forms are attached.
+  
+  Thanks for using ILAO Easy Forms!
+  
+  [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
+---
