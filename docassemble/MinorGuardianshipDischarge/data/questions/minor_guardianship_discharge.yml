@@ -11,11 +11,10 @@ include:
   - docassemble.ILAO:shared-basic-questions.yml
 ---
 objects:
-  - users: ALPeopleList.using(there_are_any=True)
-  - other_parties: ALPeopleList.using(there_are_any=True)
+  - users: ALPeopleList.using(there_are_any=True, complete_attribute='complete')
+  - other_parties: ALPeopleList.using(there_are_any=True, complete_attribute='complete')
+  - other_parties[i].jail_delivery_address: ALAddress
   - child: ALIndividual
-
-
 ---
 code: |
   al_form_type = 'starts_case'
@@ -61,6 +60,7 @@ code: |
   get_address(other_parties[0], child)
   guardianship_date
   original_county_index
+  case_number
   why_started
   why_end
   if other_parties[0].knows_delivery_method:
@@ -81,10 +81,14 @@ code: |
   nav.set_section('section_filing')
   if trial_court_index == -1:
     cook_district
-
+  if has_court_date:
+    hearing_date
+    hearing_type
   set_progress(100)
   nav.set_section('section_download')
   forms_assembling
+  build_lives_with_list
+  refresh_delivery_bundle
   get_docs_screen
 
 ---
@@ -103,6 +107,7 @@ code: |
       other_parties[i].delivery_date
   else:
     other_parties.there_is_another = True
+  other_parties[i].complete = True
 ---
 code: |
   stuff_to_snapshot = {
@@ -287,7 +292,7 @@ id: current guardian name
 question: |
   Who is the current legal guardian of ${child.name_full()}?
 subquestion: |
-  This is the person who you want to stop being ${child/name_full()}'s guardian.
+  This is the person who you want to stop being ${child.name_full()}'s guardian.
 fields:
   - code: |
       other_parties[0].name_fields()
@@ -332,6 +337,7 @@ subquestion: |
   This date should be listed on the court order that appointed them.
 fields:
   - Date: guardianship_date
+    datatype: date
     min: ${today().minus(years=18)}
     max: ${today()}
 ---
@@ -355,13 +361,25 @@ code: |
   else:
     original_court = court_list.as_court('original_court ', original_county_index)
 ---
+id: case number
+question: |
+  what was the case number of the original case?
+subquestion: |
+  This number should be listed on the court order that started the guardianship.
+
+  If you do not know the case number, you can leave this blank.
+fields:
+  - Case number: case_number
+    maxlength: 25
+    required: False
+---
 id: why started
 question: |
   Why was a guardianship of ${child.name_full()} set up?
 subquestion: |
   Explain why ${other_parties[0].name_full()} was appointed as ${child.name_full()}'s guardian. For example, there may have been a period of time when you were not available to provide care.
 fields:
-  - When the guardian was appointed, the circumstances were: why_started
+  - When the guardian was appointed, the circumstances were...: why_started
     input type: area
     maxlength: 500
     label above field: True
@@ -372,7 +390,7 @@ question: |
 subquestion: |
   Explain why ${other_parties[0].name_full()} does not need to be ${child.name_full()}'s guardian. For example, you or another family member may now be available to care for ${child.name_full()}.
 fields:
-  - The new circumstances are : why_end
+  - The new circumstances are...: why_end
     input type: area
     maxlength: 500
     label above field: True
@@ -455,6 +473,59 @@ fields:
 id: know other parties address
 question: |
   Do you know ${other_parties[i].name_full()}'s address?
+fields:
+  - no label: other_parties[i].address_known
+    datatype: yesnoradio
+---
+id: other parties address
+question: |
+  What is ${other_parties[i].name_full()}'s current address?
+fields:
+  - Street address: other_parties[i].address.address
+    address autocomplete: True
+  - Address line 2: other_parties[i].address.unit
+    required: False
+  - City: other_parties[i].address.city
+  - State: other_parties[i].address.state
+    code: |
+      states_list()
+  - ZIP code: other_parties[i].address.zip
+    required: False
+---
+id: notice options for unknown address
+generic object: ALIndividual
+question: |
+  Notice by publication
+subquestion: |  
+  **Flagged for SME** The following language comes from the Guardianship of a child Easy Form, which has a specific template in its form suite for notice by publication. Cook County does have [**a form for this purpose**](https://services.cookcountyclerkofcourt.org/forms/Forms/pdf_files/CCJP0680.pdf), though. I will ask a SME or LCM what the legal requirements are and how we should handle it in this Easy Form.
+  
+  If you cannot find ${x.name_full()}'s address to notify them in person or by mail, you will have to give them notice of the guardianship by publishing in a newspaper. You can use a *Statement in Support of Notice by Publication* to show the judge that you tried to find them.
+
+  How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. Ask the Circuit Clerk about the process in your county. If you need to provide the information to the newspaper, use the *Minor Guardianship Publication Information for Newspaper* form.
+  
+  The newspaper must print the notice at least once a week for three weeks in a row. The date it is first published must be at least 30 days before the court date. In order to prevent a problem, get a court date at least 45 days later. That will give the newspaper 15 days to get the first notice published.
+
+  If you receive a Certificate of Publication from the newspaper, file the Certificate with the Clerk.
+
+  You can download the forms you need at the end of this program, along with instructions that will explain the process.
+continue button field: x.notice_by_publication
+---
+reconsider: True
+code: |
+  temp_list = []
+  for index, party in enumerate(other_parties):
+    if index == 0:
+      if party.lives_with_child:
+        temp_list.append(party)
+    else:
+      if party.live_with:
+        temp_list.append(party)
+  live_with_parties = ALPeopleList("live_with_parties", elements = temp_list)
+  build_lives_with_list = True
+---
+id: know other parties address
+question: |
+  Do you know ${other_parties[i].name_full()}'s address?
 subquestion: |
   Their address may be listed on the guardianship order.
  
@@ -522,7 +593,7 @@ generic object: ALIndividual
 question: |
   How will you send your forms to ${ x.name_full() }?
 subquestion: |
-  You must deliver your forms by hand, by mail, through a delivery company. You cannot use email.
+  You must deliver your forms by hand, by mail, or through a delivery company. You cannot use email. (**Flagged for SME**. We should confirm that this is the case, and how the program should handle using the AOIC proof of delivery forms that have the email & efiling fields.)
   
   If you do not know this now, be sure to add it to the Proof of Delivery section of your forms later.
 fields:
@@ -620,7 +691,7 @@ question: |
   About ${other_parties[0].name_full()} and the others
   % endif
 subquestion: |
-  If ${other_parties[i].full_names(and_string=word("or"))} do not want the guardianship to be discharged, they may appear in court to tell the judge why.
+  If ${other_parties.full_names(and_string=word("or"))} do not want the guardianship to be discharged, they may appear in court to tell the judge why.
 
   If you think any of ${child.name_full()}'s relatives will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
@@ -746,6 +817,14 @@ code: |
     trial_court.address.county = "Cook"
   else:
     trial_court = court_list.as_court('trial_court', trial_court_index)
+  judicial_district_ordinal = str(trial_court.circuit)
+  court_name = str(trial_court.name)
+  court_street_address = str(trial_court.address.address)
+  court_city = str(trial_court.address.city)
+  court_state = str(trial_court.address.state)
+  court_zip = str(trial_court.address.zip)
+  court_county = str(trial_court.address.county)
+  courthouse_info = court_name + ", " + court_street_address + ", " + court_city + ", " + court_state
 ---
 id: Cook County district
 question: |
@@ -760,6 +839,89 @@ choices:
   - Fourth Municipal District, 1500 Maybrook Drive, Maywood: 18
   - Fifth Municipal District, 10220 S. 76th Avenue, Bridgeview: 19
   - Sixth Municipal District, 16501 South Kedzie Parkway, Markham: 20
+---
+id: hearing scheduled
+question: |
+  Do you already have a court date scheduled for your hearing?
+subquestion: |
+  In some counties, the Circuit Clerk can give you a hearing date before you file your petition. In other counties, you will get a hearing date when you file your petition. If you have this information now, you can add it to your forms.
+  
+  If the clerk gives you the hearing date after you file your *${form_name}*, you can add it to your Notice forms later. 
+  
+  **Note:** Be sure to add the hearing information to your *Notice of Court Date* before you send it to other parties in your case.
+fields:
+  - "Know court date and time?": has_court_date
+    datatype: yesnoradio
+---
+id: hearing info
+question: |
+  Court hearing date and time
+subquestion: |
+  Enter the date and time of the court hearing.
+
+  If you do not have this information now, you can click **Back** and change your answer.
+
+  **Note:** Be sure to add the hearing information to your *Notice of Court Date* before you send it to other parties in your case.
+fields:
+  - Hearing date: hearing_date
+    datatype: date
+    min: ${ today().format("yyyy-MM-dd") }
+  - Hearing time: hearing_time
+    datatype: time
+---
+id: hearing appearance info
+question: |
+  How to attend the court hearing
+subquestion: |
+  Your court date could be in person, by phone, or by video. If your court date is by phone or video, it is called a "Remote Appearance."
+  
+  If the clerk did not give you the court date details yet, leave it blank. You can add it to the *Notice of Court Date* after you file your petition.
+  
+  **Note:** Be sure to add the hearing information to your *Notice of Court Date* before you send it to other parties in your case.
+
+  ${ collapse_template(hearing_info_help) }  
+fields:
+  - Courtroom number: courtroom
+    maxlength: 10
+    required: False
+  - How to attend court (check all that apply): hearing_type
+    datatype: checkboxes
+    choices:
+      - In person: in_person
+      - Remotely: remote
+    none of the above: |
+      I don't know. I will add this to my forms later.
+  - Video conference website (URL): remote_website
+    maxlength: 100
+    input type: area
+    rows: 2
+    required: False
+    show if:
+      variable: hearing_type['remote']
+      is: True
+  - Video conference log-in information (Meeting ID, password, etc.): remote_login
+    maxlength: 100
+    input type: area
+    rows: 2
+    required: False
+    show if:
+      variable: hearing_type['remote']
+      is: True
+  - Call-in phone number for remote appearance: remote_phone
+    datatype: al_international_phone
+    required: False
+    show if:
+      variable: hearing_type['remote']
+      is: True
+
+---
+template: hearing_info_help
+subject: |
+  **See where to put hearing information on your forms**
+content: |  
+  You can put information on how to attend court on the bottom of page 1 of the *Notice of Court Date*.
+
+  We will add the courtroom address to your forms. To get the other information, contact your Circuit Clerk. You can look up how to contact them using [**Find Your Court**](https://www.illinoiscourts.gov/courts-directory/interactive-map/by-court-type/) on the Illinois Courts website.
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -814,3 +976,220 @@ content: |
   
   [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
 ---
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
+  - al_court_bundle: ALDocumentBundle.using(elements=[petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
+---
+objects:
+  #- instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
+  - petition: ALDocument.using(title="Petition", filename="petition_to_discharge_guardianship.pdf", has_addendum=False, enabled=True)
+  - order: ALDocument.using(title="Order", filename="order.pdf", has_addendum=False, enabled=True)
+  - notice: ALDocument.using(title="Notice", filename="notice.pdf", has_addendum=False, enabled=True)
+---
+generic object: ALIndividual
+objects:
+  - x.proof_of_delivery: ALDocument.using(title="Proof of Delivery", filename="proof_of_delivery.pdf", has_addendum=False)
+---
+objects:
+  - delivery_bundle: ALDocumentBundle.using(elements=[], title= "Proof of Delivery", filename="proof_of_delivery.pdf", has_addendum=False)
+---
+reconsider: True
+code: |
+  deliveries_to_bundle = []
+  delivery_bundle.enabled = False
+  for party in other_parties:
+      party.proof_of_delivery.enabled = True
+      delivery_bundle.enabled = True
+      deliveries_to_bundle.append(party.proof_of_delivery)
+  delivery_bundle.elements = deliveries_to_bundle
+  refresh_delivery_bundle = True
+---
+attachment:
+  variable name: petition[i]
+  name: petition
+  filename: petition
+  docx template file: guardianship_discharge_petition.docx
+---
+attachment:
+  variable name: order[i]
+  name: order
+  filename: order
+  docx template file: guardianship_discharge_order.docx
+---
+attachment:
+  variable name: notice[i]
+  name: notice
+  filename: notice
+  skip undefined: True
+  editable: True
+  pdf template file: notice_of_court_date.pdf
+  fields:
+      - "trial_court_county": ${ trial_court.address.county }
+      - "plaintiffs": ${ users[0].name_full() }
+      - "defendants": ${other_parties[0].name_full()}
+      - "user__1": ${ users[0].name_full() }
+      - "user__2": ${ users[0].name_full() }
+      - "user__3": ${ users[0].name_full() }
+      - "user_mail_address_one_line__1": ${ users[0].address.on_one_line(bare=True) }
+      - "user_mail_address_one_line__2": ${ users[0].address.on_one_line(bare=True) }
+      - "user_phone_number__1": ${ phone_number_formatted(users[0].phone_number) }
+      - "user_phone_number__2": ${ phone_number_formatted(users[0].phone_number) }
+      - "user_email": ${ users[0].email if users[0].has_email_address else '' }
+      - "user_email__2": ${ users[0].email if users[0].has_email_address else '' }
+      - "case_number__1": ${ case_number }
+      - "case_number__2": ${ case_number }
+      - "case_number__3": ${ case_number }
+      - "case_number__4": ${ case_number }
+      - "e_sign_name__1": ${ users[0].name_full() if e_signature else '' }
+      - "e_sign_name__2": ${ users[0].name_full() if e_signature else '' }
+      - "for_self": ${True}
+      - "for_self_2": ${True}      
+      - "motion_summary": ${ "Petition to Discharge Guardianship of a Minor"}
+
+      - "hearing_date": ${ "" }
+      - "hearing_time": ${ "" }
+      - "hearing_am_checkbox": ${ ""}
+      - "hearing_pm_checkbox": ${ ""}
+      - "in_person_cb": ${ "" }
+      - "remote_cb": ${  "" }
+      - "remote_url": ${ "" }
+      - "remote_login": ${  ""}
+      - "remote_phone": ${ ""}
+      - "hearing_courtroom": ${ ""}
+      - "courthouse_address": ${""}
+      - "clerk_phone": ${ "" }
+      - "clerk_website": ${ "" }
+        
+      - "document_name": ${ "Petition for Rule to Show Cause and for Finding of Indirect Civil Contempt"}
+      - "delivery_party1_name_full": | 
+          ${ other_parties[0].name_full() }
+      - "delivery_party1_mail_address_on_one_line": ${ other_parties[0].address.on_one_line(bare=True)} }
+      - "delivery_party1_email": ${ other_parties[0].delivery_email if other_parties[0].knows_delivery_method else '' }
+      - "delivery_party1_email_efsp": ${ other_parties[0].delivery_efsp_email if other_parties[0].knows_delivery_method else '' }
+      - "is_delivery_party1_hand_yes": ${ other_parties[0].hand_delivery if other_parties[0].knows_delivery_method else '' }
+      - "is_delivery_party1_mail_yes": ${ other_parties[0].mail_delivery if other_parties[0].knows_delivery_method else '' }
+      - "is_delivery_party1_efm_yes": ${ other_parties[0].efm_delivery if other_parties[0].knows_delivery_method else '' }
+      - "is_delivery_party1_email_yes": ${ other_parties[0].email_delivery if other_parties[0].knows_delivery_method else '' }
+      - "delivery_party1_date": ${ other_parties[0].delivery_date if other_parties[0].knows_delivery_method and other_parties[0].knows_delivery_date else '' }
+      - "delivery_party1_time": ${ format_time(other_parties[0].delivery_time, format='h:mm a') if other_parties[0].knows_delivery_method and other_parties[0].knows_delivery_time else '' }
+      
+      - "is_delivery_party1_not_electronic": ${ True if other_parties[0].knows_delivery_method else '' }
+      - "delivery_party1_mail_location": |
+          % if other_parties[0].knows_delivery_method and other_parties[0].mail_delivery:
+          % if other_parties[0].delivery_mail_address != "" and other_parties[0].delivery_mail_city != "" and other_parties[0].delivery_mail_state != "":
+          ${other_parties[0].delivery_mail_address }, ${other_parties[0].delivery_mail_city}, ${ state_name(other_parties[0].delivery_mail_state) }
+          % elif other_parties[0].delivery_mail_address != "" and other_parties[0].delivery_mail_city != "":
+          ${other_parties[0].delivery_mail_address }, ${other_parties[0].delivery_mail_city}
+          % elif other_parties[0].delivery_mail_address != "" and other_parties[0].delivery_mail_state != "":
+          ${other_parties[0].delivery_mail_address }, ${ state_name(other_parties[0].delivery_mail_state) }
+          % elif other_parties[0].delivery_mail_city != "" and other_parties[0].delivery_mail_state != "":
+          ${other_parties[0].delivery_mail_city}, ${ state_name(other_parties[0].delivery_mail_state) }
+          % elif other_parties[0].delivery_mail_address != "":
+          ${other_parties[0].delivery_mail_address}
+          % elif other_parties[0].delivery_mail_city != "":
+          ${other_parties[0].delivery_mail_city}
+          % else:
+          ${state_name(other_parties[0].delivery_mail_state)}
+          % endif
+          % else:
+          ${ "" }
+          % endif
+      - "is_delivery_party1_jail_yes": ${ True if other_parties[0].knows_delivery_method and other_parties[0].jail_delivery else '' }
+      - "delivery_party1_jail_name": |
+          % if other_parties[0].knows_delivery_method and other_parties[0].jail_delivery:
+          % if other_parties[0].delivery_jail_name != "" and other_parties[0].jail_delivery_address.address != "" and other_parties[0].jail_delivery_address.city != "" and other_parties[0].jail_delivery_address.state != "":
+          ${ other_parties[0].delivery_jail_name }, ${ other_parties[0].jail_delivery_address.on_one_line(bare=True)}
+          % elif other_parties[0].delivery_jail_name == "":
+          ${ other_parties[0].jail_delivery_address.on_one_line(bare=True)}
+          % else:
+          ${ other_parties[0].delivery_jail_name }
+          % endif
+          % else:
+          ${""}
+          % endif
+      - "is_additional_proof_delivery_yes": ${ True if other_parties.number_gathered() > 1 else False }
+      - "hearing_date": ${hearing_date if has_court_date else ""}
+      - "hearing_time": ${format_time(hearing_time, format='h:mm') if has_court_date and hearing_time != "" else ""}
+      - "hearing_am_checkbox": ${True if has_court_date and format_time(hearing_time, format='a')=='AM' and hearing_time != "" else ""}
+      - "hearing_pm_checkbox": ${True if has_court_date and format_time(hearing_time, format='a')=='PM' and hearing_time != "" else ""}
+      - "in_person_cb": ${True if has_court_date and hearing_type['in_person'] else False}
+      - "remote_cb": ${True if has_court_date and hearing_type['remote'] else False}
+      - "hearing_courtroom": ${courtroom if has_court_date else ""}
+      - "courthouse_address": |
+          % if has_court_date and hearing_type['in_person']:
+          ${courthouse_info}, Room ${courtroom}
+          % endif
+      - "remote_url": ${ remote_website if has_court_date and hearing_type['remote'] else ""}
+      - "remote_login": ${ remote_login if has_court_date and hearing_type['remote'] else ""}
+      - "remote_phone": ${ phone_number_formatted(remote_phone) if has_court_date and hearing_type['remote'] else ""}
+      - "clerk_phone": ${trial_court.phone if has_court_date else ""}
+      - "clerk_website": ${trial_court.website if has_court_date else ""}
+---
+generic object: ALIndividual
+attachment:
+  variable name: x.proof_of_delivery[i]
+  name: proof_of_delivery
+  filename: proof_of_delivery
+  skip undefined: True
+  editable: False
+  pdf template file: aoic_proof_of_delivery.pdf
+  fields:
+      - "trial_court_county": ${trial_court.address.county}
+      - "plaintiffs": ${ users[0].name_full() }   
+      - "defendant_list": ${ x.name_full() } 
+      - "user__1": ${ users[0].name_full() }
+      - "user__2": ${ users[0].name_full() }
+      - "user_mail_address_one_line__1": ${ users[0].address.on_one_line(bare=True) }
+      - "user_phone_number__1": ${ phone_number_formatted(users[0].phone_number) }
+      - "user_email": ${ users[0].email if users[0].has_email_address else '' }
+      - "case_number__1": ${ case_number }
+      - "case_number__2": ${ case_number }   
+      - "e_sign_name__1": ${ users[0].name_full() if e_signature else '' }
+      - "for_self": ${True}
+      - "document_name": ${"Petition to Discharge Guardianship of a Minor"}
+      - "delivery_party1_name_full": | 
+          ${ x.name_full() }
+      - "delivery_party1_mail_address_on_one_line": ${ x.address.on_one_line(bare=True) if x.knows_delivery_method else "" }
+      - "delivery_party1_email": ${ x.delivery_email if x.knows_delivery_method else '' }
+      - "delivery_party1_email_efsp": ${ x.delivery_efsp_email if x.knows_delivery_method else '' }
+      - "is_delivery_party1_hand_yes": ${ x.hand_delivery if x.knows_delivery_method else '' }
+      - "is_delivery_party1_mail_yes": ${ x.mail_delivery if x.knows_delivery_method else '' }
+      - "is_delivery_party1_efm_yes": ${ x.efm_delivery if x.knows_delivery_method else '' }
+      - "is_delivery_party1_email_yes": ${ x.email_delivery if x.knows_delivery_method else '' }
+      - "delivery_party1_date": ${ x.delivery_date if x.knows_delivery_method and x.knows_delivery_date else '' }
+      - "delivery_party1_time": ${ format_time(x.delivery_time, format='h:mm a') if x.knows_delivery_method and x.knows_delivery_time else '' }
+      
+      - "is_delivery_party1_not_electronic": ${ True if x.knows_delivery_method else '' }
+      - "delivery_party1_mail_location": |
+          % if x.knows_delivery_method and x.mail_delivery:
+          % if x.delivery_mail_address != "" and x.delivery_mail_city != "" and x.delivery_mail_state != "":
+          ${x.delivery_mail_address }, ${x.delivery_mail_city}, ${ state_name(x.delivery_mail_state) }
+          % elif x.delivery_mail_address != "" and x.delivery_mail_city != "":
+          ${x.delivery_mail_address }, ${x.delivery_mail_city}
+          % elif x.delivery_mail_address != "" and x.delivery_mail_state != "":
+          ${x.delivery_mail_address }, ${ state_name(x.delivery_mail_state) }
+          % elif x.delivery_mail_city != "" and x.delivery_mail_state != "":
+          ${x.delivery_mail_city}, ${ state_name(x.delivery_mail_state) }
+          % elif x.delivery_mail_address != "":
+          ${x.delivery_mail_address}
+          % elif x.delivery_mail_city != "":
+          ${x.delivery_mail_city}
+          % else:
+          ${state_name(x.delivery_mail_state)}
+          % endif
+          % else:
+          ${ "" }
+          % endif
+      - "is_delivery_party1_jail_yes": ${ True if x.knows_delivery_method and x.jail_delivery else '' }
+      - "delivery_party1_jail_name": |
+          % if x.knows_delivery_method and x.jail_delivery:
+          % if x.delivery_jail_name != "" and x.jail_delivery_address.address != "" and x.jail_delivery_address.city != "" and x.jail_delivery_address.state != "":
+          ${ x.delivery_jail_name }, ${ x.jail_delivery_address.on_one_line(bare=True)}
+          % elif x.delivery_jail_name == "":
+          ${ x.jail_delivery_address.on_one_line(bare=True)}
+          % else:
+          ${ x.delivery_jail_name }
+          % endif
+          % else:
+          ${""}
+          % endif    
