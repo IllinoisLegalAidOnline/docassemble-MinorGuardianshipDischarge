@@ -90,7 +90,6 @@ code: |
   build_lives_with_list
   refresh_delivery_bundle
   get_docs_screen
-
 ---
 #other parties gather loop
 code: |
@@ -363,7 +362,7 @@ code: |
 ---
 id: case number
 question: |
-  what was the case number of the original case?
+  What was the case number of the original case?
 subquestion: |
   This number should be listed on the court order that started the guardianship.
 
@@ -513,13 +512,16 @@ continue button field: x.notice_by_publication
 reconsider: True
 code: |
   temp_list = []
-  for index, party in enumerate(other_parties):
-    if index == 0:
-      if party.lives_with_child:
-        temp_list.append(party)
-    else:
-      if party.live_with:
-        temp_list.append(party)
+  if other_relatives:
+    for index, party in enumerate(other_parties):
+      if index == 0:
+        if party.lives_with_child:
+          temp_list.append(party)
+      else:
+        if party.live_with:
+          temp_list.append(party)
+  elif other_parties[0].lives_with_child:
+    temp_list.append(other_parties[0])
   live_with_parties = ALPeopleList("live_with_parties", elements = temp_list)
   build_lives_with_list = True
 ---
@@ -685,15 +687,21 @@ validation code: |
 id: others agreement
 continue button field: others_agree
 question: |
-  % if other_parties.number_gathered == 1:
-  About ${other_parties[0].name_full()}
-  % else:
+  % if other_relatives:
   About ${other_parties[0].name_full()} and the others
+  % else:
+  About ${other_parties[0].name_full()}
   % endif
 subquestion: |
+  % if other_relatives:
   If ${other_parties.full_names(and_string=word("or"))} do not want the guardianship to be discharged, they may appear in court to tell the judge why.
 
   If you think any of ${child.name_full()}'s relatives will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  % else:
+  If ${other_parties[0].name_full()} does not want the guardianship to be discharged, they may appear in court to tell the judge why.
+
+  If you think ${other_parties[0].name_full()} will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  % endif
 ---
 id: user name
 sets:
@@ -977,11 +985,11 @@ content: |
   [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
   - al_court_bundle: ALDocumentBundle.using(elements=[petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
 ---
 objects:
-  #- instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False, enabled=True)
   - petition: ALDocument.using(title="Petition", filename="petition_to_discharge_guardianship.pdf", has_addendum=False, enabled=True)
   - order: ALDocument.using(title="Order", filename="order.pdf", has_addendum=False, enabled=True)
   - notice: ALDocument.using(title="Notice", filename="notice.pdf", has_addendum=False, enabled=True)
@@ -997,12 +1005,20 @@ reconsider: True
 code: |
   deliveries_to_bundle = []
   delivery_bundle.enabled = False
-  for party in other_parties:
-      party.proof_of_delivery.enabled = True
-      delivery_bundle.enabled = True
-      deliveries_to_bundle.append(party.proof_of_delivery)
+  if other_relatives:
+    for index, party in enumerate(other_parties):
+      if index != 0:
+        party.proof_of_delivery.enabled = True
+        delivery_bundle.enabled = True
+        deliveries_to_bundle.append(party.proof_of_delivery)
   delivery_bundle.elements = deliveries_to_bundle
   refresh_delivery_bundle = True
+---
+attachment:
+  variable name: instructions[i]
+  name: instructions
+  filename: instructions
+  docx template file: guardianship_discharge_instructions.docx
 ---
 attachment:
   variable name: petition[i]
@@ -1063,7 +1079,7 @@ attachment:
       - "document_name": ${ "Petition for Rule to Show Cause and for Finding of Indirect Civil Contempt"}
       - "delivery_party1_name_full": | 
           ${ other_parties[0].name_full() }
-      - "delivery_party1_mail_address_on_one_line": ${ other_parties[0].address.on_one_line(bare=True)} }
+      - "delivery_party1_mail_address_on_one_line": ${ other_parties[0].address.on_one_line(bare=True) }
       - "delivery_party1_email": ${ other_parties[0].delivery_email if other_parties[0].knows_delivery_method else '' }
       - "delivery_party1_email_efsp": ${ other_parties[0].delivery_efsp_email if other_parties[0].knows_delivery_method else '' }
       - "is_delivery_party1_hand_yes": ${ other_parties[0].hand_delivery if other_parties[0].knows_delivery_method else '' }
@@ -1192,4 +1208,554 @@ attachment:
           % endif
           % else:
           ${""}
-          % endif    
+          % endif 
+---
+id: child review screen
+section: Child
+event: section_child
+question: |
+  Child information
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: child.name.first
+    button: |
+      **Child's name:**
+      ${child.name_full()}
+  - Edit: child.birthdate
+    button: |
+      **${child.name_full()}'s birth date:**
+      ${child.birthdate}
+  - Edit: child.address.address
+    button: |
+      **${child.name_full()}'s address:**
+      ${child.address.on_one_line(bare=True)}
+---
+id: guardian review screen
+section: Guardian
+event: section_guardian
+question: |
+  Guardian information
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: other_parties[0].name.first
+    button: |
+      **${child.name_full()}'s current guardian:**
+      ${other_parties[0].name_full()}
+  - Edit: other_parties[0].lives_with_child
+    button: |
+      **Does ${other_parties[0].name_full()} live with ${child.name_full()}?**
+      ${word(yesno(other_parties[0].lives_with_child))}
+  - Edit: other_parties[0].address.address
+    button: |
+      **${other_parties[0].name_full()}'s address:**
+      ${other_parties[0].address.on_one_line(bare=True)}
+    show if: not other_parties[0].lives_with_child
+  - Edit: guardianship_date
+    button: |
+      **Date ${other_parties[0].name_full()} appointed guardian:**
+      ${guardianship_date}
+  - Edit: 
+      - original_county_index
+      - recompute:
+        - original_court
+    button: |
+      **County of the court that appointed ${other_parties[0].name_full()}:**
+      ${ original_court.address.county }
+  - Edit: case_number
+    button: |
+      **Case number:**
+      ${case_number}
+  - Edit: why_started
+    button: |
+      **When the guardian was appointed, the circumstances were...**
+      ${why_started}
+  - Edit: why_end
+    button: |
+      **The new circumstances are...**
+      ${why_end}
+  - Edit: other_parties[0].knows_delivery_method
+    button: |
+      **Do you know how and when you will send your forms to ${other_parties[0].name_full() }?**
+      ${word(yesno(other_parties[0].knows_delivery_method))}
+  - Edit: other_parties[0].mail_delivery
+    button: |
+      **Delivery by: (Edit to view and change details)**
+      
+      % if other_parties[0].mail_delivery == True:
+        * US mail or delivery company
+      % endif
+      % if other_parties[0].hand_delivery == True:
+        * Hand delivery
+      % endif
+      % if other_parties[0].jail_delivery == True:
+        * Mail from prison or jail
+      % endif
+      % if other_parties[0].mail_delivery != True and other_parties[0].hand_delivery != True and other_parties[0].jail_delivery != True:
+        * None entered
+      % endif
+    show if: other_parties[0].knows_delivery_method
+  - Edit: other_parties[0].delivery_date
+    button: |
+      **Delivery on:**
+      % if other_parties[0].delivery_date != "" and other_parties[0].delivery_time != "":
+      ${other_parties[0].delivery_date } at ${format_time(other_parties[0].delivery_time, "h:mm a") }
+      % elif other_parties[0].delivery_date != "":
+      ${other_parties[0].delivery_date}
+      % else:
+      I don't know.
+      % endif
+    show if: other_parties[0].knows_delivery_method
+---
+id: family review screen
+section: Child's parents, caregivers, and relatives
+event: section_family
+question: |
+  Child's parents, caregivers, and relatives
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: other_relatives
+    button: |
+      **Does ${child.name_full()} have other relatives who need to be notified?**
+      ${word(yesno(other_relatives))}
+  - Edit: other_parties.revisit
+    button: |
+      **${child.name_full()}'s parents, caregivers, and relatives:**
+
+      % for party in other_parties:
+      * ${party.name_full()}
+      % endfor
+    show if: other_relatives
+---
+id: other parties review screen
+section: Child's parents, caregivers, and relatives
+question: |
+  Edit ${child.name_full()}'s parents, caregivers, and relatives
+subquestion: |
+  ${other_parties.table}
+
+  ${other_parties.add_action()}
+---
+table: other_parties.table
+rows: other_parties
+columns:
+  - Name: |
+      row_item.name_full() if defined("row_item.name.first") else ""
+edit:
+  - review_party
+delete buttons: True
+confirm: True
+---
+id: party review screen
+section: Child's parents, caregivers, and relatives
+continue button field: x.review_party
+generic object: ALIndividual
+question: |
+  Edit ${ x.name_full() }'s information
+review:
+  - Edit: x.name.first
+    button: |
+      **Name:**
+      ${ x.name_full()  }
+  - Edit: x.relationship
+    button: |
+      **Relationship to ${child.name_full()}:**
+      % if x.relationship == "parent":
+      ${child.name_full()}'s biological or adoptive parent
+      % elif x.relationship == "sibling":
+      ${child.name_full()}'s sibling who is at least 18 years old
+      % elif x.relationship == "custody":
+      An adult who has had legal or physical custody of ${ child.name_full()}
+      % elif x.relationship == "spouse":
+      ${child.name_full()}'s spouse
+      % elif x.relationship == "gal":
+      ${child.name_full()}'s Guardian ad Litem
+      % else:
+      A person with a relationship to ${child.name_full()} other than parent, adult sibling, custodian, spouse, or Guardian at Litem.
+      % endif
+  - Edit: x.live_with
+    button: |
+      **Does ${x.name_full()} live with ${child.name_full()}?**
+      ${word(yesno(x.live_with))}
+  - Edit: x.address_known
+    button: |
+      **Do you know ${x.name_full()}'s address?**
+      ${word(yesno(x.address_known))}
+    show if: not x.live_with
+  - Edit: x.address.address
+    button: |
+      **${x.name_full()}'s address:**
+      ${x.address.on_one_line(bare=True)}
+    show if: x.address_known and not x.live_with
+  - Edit: x.knows_delivery_method
+    button: |
+      **Do you know how and when you will send your forms to ${x.name_full() }?**
+      ${word(yesno(x.knows_delivery_method))}
+  - Edit: x.mail_delivery
+    button: |
+      **Delivery by: (Edit to view and change details)**
+      
+      % if x.mail_delivery == True:
+        * US mail or delivery company
+      % endif
+      % if x.hand_delivery == True:
+        * Hand delivery
+      % endif
+      % if x.jail_delivery == True:
+        * Mail from prison or jail
+      % endif
+      % if x.mail_delivery != True and x.hand_delivery != True and x.jail_delivery != True:
+        * None entered
+      % endif
+    show if: x.knows_delivery_method
+  - Edit: x.delivery_date
+    button: |
+      **Delivery on:**
+      % if x.delivery_date != "" and x.delivery_time != "":
+      ${x.delivery_date } at ${format_time(x.delivery_time, "h:mm a") }
+      % elif x.delivery_date != "":
+      ${x.delivery_date}
+      % else:
+      I don't know.
+      % endif
+    show if: x.knows_delivery_method
+---
+id: user review screen
+section: About you
+event: section_user
+question: |
+  About you
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: users[0].name.first
+    button: |
+      **Your name:**
+      ${users[0].name_full()}
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**
+      ${users[0].address.on_one_line(bare=True)}
+  - Edit: users[0].has_email_address
+    button: |
+      **Your contact info:**
+
+      % if users[0].phone_number != "":
+      * Phone number: ${phone_number_formatted(users[0].phone_number)}
+      % else:
+      * Phone number: None entered
+      % endif
+      % if users[0].has_email_address:
+      * Email address: ${users[0].email}
+      % else:
+      * Email address: None entered
+      % endif
+---
+id: filing review screen
+section: Court and filing details
+event: section_filing
+question: |
+  Court and filing details
+subquestion: |
+  Edit your answers below.
+review:
+  - Edit: 
+      - trial_court_index
+      - recompute:
+        - trial_court
+    button: |
+      **County where you will file the petition:**
+      ${ trial_court.address.county }
+  - Edit: cook_district
+    button: |
+      **Cook County courthouse:**
+      % if cook_district == "15":
+      ${ "Daley Center, 50 W. Washington Street, Chicago" }
+      % elif cook_district == "16":
+      ${ "Second Municipal District, 5600 Old Orchard Road, Skokie" }
+      % elif cook_district == "17":
+      ${ "Third Municipal District, 2121 Euclid Avenue, Rolling Meadows" }
+      % elif cook_district == "18":
+      ${ "Fourth Municipal District, 1500 Maybrook Drive, Maywood" }
+      % elif cook_district == "19":
+      ${ "Fifth Municipal District, 10220 S. 76th Avenue, Bridgeview" }
+      % elif cook_district == "20":
+      ${ "Sixth Municipal District, 16501 South Kedzie Parkway, Markham" }
+      % endif      
+    show if: trial_court_index == -1  
+  - Edit: has_court_date
+    button: |
+      **Do you already have a court date scheduled for your hearing?**
+      ${ word(yesno(has_court_date)) }
+  - Edit: hearing_date
+    button: |
+      **Court hearing on:**
+      ${ hearing_date } at ${ format_time(hearing_time, "h:mm a") }
+    show if: has_court_date
+  - Edit: hearing_type
+    button: |
+      **How can parties attend court?**
+      
+      % if hearing_type['in_person'] == True:
+        * In person
+      % endif
+      % if hearing_type['remote'] == True:
+        * Remotely
+      % endif
+      % if hearing_type['in_person'] == False and hearing_type['remote'] == False:
+        * I don't know. I will add this to my forms later. 
+      % endif
+    show if: has_court_date
+  - Edit: courtroom
+    button: |
+      **Courtroom:**
+      % if courtroom != "":
+      ${ courtroom }
+      % else:
+      None entered
+      % endif
+    show if: has_court_date
+  - Edit: remote_website
+    button: |
+      **Video conference website (URL):**
+      % if remote_website != "":
+      ${ remote_website }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date
+  - Edit: remote_login
+    button: |
+      **Video conference log-in information:**
+      % if remote_login != "":
+      ${ remote_login }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date
+  - Edit: remote_phone
+    button: |
+      **Call-in phone number for remote appearance:**
+      % if remote_phone != "":
+      ${ phone_number_formatted(remote_phone) }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date 
+---
+id: review screen
+event: review_answers
+question: |
+  Review screen
+subquestion: |
+  Edit your answers below.
+review: 
+  - note: |
+      <h4>Child</h4>
+  - Edit: child.name.first
+    button: |
+      **Child's name:**
+      ${child.name_full()}
+  - Edit: child.birthdate
+    button: |
+      **${child.name_full()}'s birth date:**
+      ${child.birthdate}
+  - Edit: child.address.address
+    button: |
+      **${child.name_full()}'s address:**
+      ${child.address.on_one_line(bare=True)}
+  - note: |
+      <h4>Guardian</h4>
+  - Edit: other_parties[0].name.first
+    button: |
+      **${child.name_full()}'s current guardian:**
+      ${other_parties[0].name_full()}
+  - Edit: other_parties[0].lives_with_child
+    button: |
+      **Does ${other_parties[0].name_full()} live with ${child.name_full()}?**
+      ${word(yesno(other_parties[0].lives_with_child))}
+  - Edit: other_parties[0].address.address
+    button: |
+      **${other_parties[0].name_full()}'s address:**
+      ${other_parties[0].address.on_one_line(bare=True)}
+    show if: not other_parties[0].lives_with_child
+  - Edit: guardianship_date
+    button: |
+      **Date ${other_parties[0].name_full()} appointed guardian:**
+      ${guardianship_date}
+  - Edit: 
+      - original_county_index
+      - recompute:
+        - original_court
+    button: |
+      **County of the court that appointed ${other_parties[0].name_full()}:**
+      ${ original_court.address.county }
+  - Edit: case_number
+    button: |
+      **Case number:**
+      ${case_number}
+  - Edit: why_started
+    button: |
+      **When the guardian was appointed, the circumstances were...**
+      ${why_started}
+  - Edit: why_end
+    button: |
+      **The new circumstances are...**
+      ${why_end}
+  - Edit: other_parties[0].knows_delivery_method
+    button: |
+      **Do you know how and when you will send your forms to ${other_parties[0].name_full() }?**
+      ${word(yesno(other_parties[0].knows_delivery_method))}
+  - Edit: other_parties[0].mail_delivery
+    button: |
+      **Delivery by: (Edit to view and change details)**
+      
+      % if other_parties[0].mail_delivery == True:
+        * US mail or delivery company
+      % endif
+      % if other_parties[0].hand_delivery == True:
+        * Hand delivery
+      % endif
+      % if other_parties[0].jail_delivery == True:
+        * Mail from prison or jail
+      % endif
+      % if other_parties[0].mail_delivery != True and other_parties[0].hand_delivery != True and other_parties[0].jail_delivery != True:
+        * None entered
+      % endif
+    show if: other_parties[0].knows_delivery_method
+  - Edit: other_parties[0].delivery_date
+    button: |
+      **Delivery on:**
+      % if other_parties[0].delivery_date != "" and other_parties[0].delivery_time != "":
+      ${other_parties[0].delivery_date } at ${format_time(other_parties[0].delivery_time, "h:mm a") }
+      % elif other_parties[0].delivery_date != "":
+      ${other_parties[0].delivery_date}
+      % else:
+      I don't know.
+      % endif
+    show if: other_parties[0].knows_delivery_method
+  - note: |
+      <h4>Child's parents, caregivers, and relatives</h4>
+  - Edit: other_relatives
+    button: |
+      **Does ${child.name_full()} have other relatives who need to be notified?**
+      ${word(yesno(other_relatives))}
+  - Edit: other_parties.revisit
+    button: |
+      **${child.name_full()}'s parents, caregivers, and relatives:**
+
+      % for party in other_parties:
+      * ${party.name_full()}
+      % endfor
+    show if: other_relatives
+  - note: |
+      <h4>About you</h4>
+  - Edit: users[0].name.first
+    button: |
+      **Your name:**
+      ${users[0].name_full()}
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**
+      ${users[0].address.on_one_line(bare=True)}
+  - Edit: users[0].has_email_address
+    button: |
+      **Your contact info:**
+
+      % if users[0].phone_number != "":
+      * Phone number: ${phone_number_formatted(users[0].phone_number)}
+      % else:
+      * Phone number: None entered
+      % endif
+      % if users[0].has_email_address:
+      * Email address: ${users[0].email}
+      % else:
+      * Email address: None entered
+      % endif
+  - note: |
+      <h4>Court and filing details</h4>
+  - Edit: 
+      - trial_court_index
+      - recompute:
+        - trial_court
+    button: |
+      **County where you will file the petition:**
+      ${ trial_court.address.county }
+  - Edit: cook_district
+    button: |
+      **Cook County courthouse:**
+      % if cook_district == "15":
+      ${ "Daley Center, 50 W. Washington Street, Chicago" }
+      % elif cook_district == "16":
+      ${ "Second Municipal District, 5600 Old Orchard Road, Skokie" }
+      % elif cook_district == "17":
+      ${ "Third Municipal District, 2121 Euclid Avenue, Rolling Meadows" }
+      % elif cook_district == "18":
+      ${ "Fourth Municipal District, 1500 Maybrook Drive, Maywood" }
+      % elif cook_district == "19":
+      ${ "Fifth Municipal District, 10220 S. 76th Avenue, Bridgeview" }
+      % elif cook_district == "20":
+      ${ "Sixth Municipal District, 16501 South Kedzie Parkway, Markham" }
+      % endif      
+    show if: trial_court_index == -1  
+  - Edit: has_court_date
+    button: |
+      **Do you already have a court date scheduled for your hearing?**
+      ${ word(yesno(has_court_date)) }
+  - Edit: hearing_date
+    button: |
+      **Court hearing on:**
+      ${ hearing_date } at ${ format_time(hearing_time, "h:mm a") }
+    show if: has_court_date
+  - Edit: hearing_type
+    button: |
+      **How can parties attend court?**
+      
+      % if hearing_type['in_person'] == True:
+        * In person
+      % endif
+      % if hearing_type['remote'] == True:
+        * Remotely
+      % endif
+      % if hearing_type['in_person'] == False and hearing_type['remote'] == False:
+        * I don't know. I will add this to my forms later. 
+      % endif
+    show if: has_court_date
+  - Edit: courtroom
+    button: |
+      **Courtroom:**
+      % if courtroom != "":
+      ${ courtroom }
+      % else:
+      None entered
+      % endif
+    show if: has_court_date
+  - Edit: remote_website
+    button: |
+      **Video conference website (URL):**
+      % if remote_website != "":
+      ${ remote_website }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date
+  - Edit: remote_login
+    button: |
+      **Video conference log-in information:**
+      % if remote_login != "":
+      ${ remote_login }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date
+  - Edit: remote_phone
+    button: |
+      **Call-in phone number for remote appearance:**
+      % if remote_phone != "":
+      ${ phone_number_formatted(remote_phone) }
+      % else:
+      None entered
+      % endif
+    show if: hearing_type['remote'] == True and has_court_date 
