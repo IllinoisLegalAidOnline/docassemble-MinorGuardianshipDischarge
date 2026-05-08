@@ -1,6 +1,6 @@
 metadata:
-  title: Minor guardianship discharge
-  short title: Minor guardianship discharge
+  title: End guardianship of a child
+  short title: End guardianship of a child
   comment: This program helps you ask the court to end the guardianship of a child.
   authors:
     - Vivian McNaughton
@@ -18,7 +18,7 @@ objects:
 ---
 code: |
   al_form_type = 'starts_case'
-  ilao_easy_form_title = "Minor guardianship discharge"
+  ilao_easy_form_title = "End guardianship of a child"
   ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/minor-guardianship-discharge"
   form_name = "Petition to Discharge Guardianship of a Minor"
   github_user = 'IllinoisLegalAidOnline'
@@ -59,17 +59,18 @@ code: |
   other_parties[0].name.first
   get_address(other_parties[0], child)
   guardianship_date
-  original_county_index
+  if court_not_il:
+    court_not_il_kickout
   case_number
   why_started
   why_end
+  about_notice
   if other_parties[0].knows_delivery_method:
     other_parties[0].hand_delivery
     other_parties[0].delivery_date
 
   nav.set_section('section_family')
-  if other_relatives:
-    other_parties.gather()
+  other_parties.gather()
   others_agree
 
   nav.set_section('section_user')
@@ -84,6 +85,7 @@ code: |
   if has_court_date:
     hearing_date
     hearing_type
+  e_signature
   set_progress(100)
   nav.set_section('section_download')
   forms_assembling
@@ -96,16 +98,16 @@ code: |
   other_parties[i].name.first
   if i != 0:
     other_parties[i].relationship
-    if not other_parties[i].live_with:
-      if other_parties[i].address_known:
-        other_parties[i].address.address
-      else:
-        other_parties[i].notice_by_publication
-    if other_parties[i].knows_delivery_method:
-      other_parties[i].hand_delivery
-      other_parties[i].delivery_date
-  else:
-    other_parties.there_is_another = True
+    get_address(other_parties[i], child)
+    if other_parties[i].address_known:
+      other_parties[i].address.address
+      if other_parties[i].knows_delivery_method:
+        other_parties[i].hand_delivery
+        other_parties[i].delivery_date
+    else:
+      other_parties[i].notice_by_publication  
+  #else:
+  #  other_parties.there_is_another = True
   other_parties[i].complete = True
 ---
 code: |
@@ -143,13 +145,13 @@ code: |
 ---
 id: welcome
 question: |
-  Discharge guardianship of a child
+  End guardianship of a child
 subquestion: |
-  Welcome to Illinois Legal Aid Online's **Discharge guardianship of a child** Easy Form.
+  Welcome to Illinois Legal Aid Online's **End guardianship of a child** Easy Form.
 
-  This program helps you make a *Petition to discharge guardianship of a child*. Use it if you want a court to end the guardianship of your child and give you custody again.
+  This program helps you make a *${form_name}*. Use it if you want a court to end the guardianship of your child and give you custody again.
   
-  **Note:** If you want to discharge the guardianship of more than one child, you will have to make a separate set of forms for each child.
+  **Note:** This Easy Form makes forms for just one child. If you want to end the guardianship of more than one child, you will have to make a separate set of forms for each child.
  
   To learn more, read ILAO's article about [**ending a guardianship**](https://www.illinoislegalaid.org/node/30466).
 field: sees_nav_bar
@@ -164,9 +166,8 @@ subquestion: |
   * Name, birthdate, and address of the child,
   * Name and address of the child's current guardian,
   * Why and when the guardianship started, 
-  * What changed so that the guardianship is no longer needed,
-  * Names and addresses of the child's nearest relatives and anyone who has had custody of the child, and
-  * Your name, address, and living situation.
+  * What changed so that the guardianship is no longer needed, and
+  * Names and addresses of the child's nearest relatives and anyone who has had custody of the child.
 
   Set aside 10 to 20 minutes to finish this program. You can log in and save your work to continue later. 
  
@@ -183,13 +184,13 @@ content: |
 id: basic guardianship info
 continue button field: basic_info
 question: |
-  About guardians
+  About ending a guardianship
 subquestion: |
-  Your child's guardian is the person a judge has appointed to care for and make decisions for your child.
+  Your child's guardian is the person a judge has appointed to care for and make decisions for your child. A guardian appointed by a court order is also known as a "plenary guardian."
 
   You can use this program if your child has a court-appointed guardian and you are a legal parent of your child. If your child has a short-term guardian, you do not need to use this program.
 
-  The court will want to know why they should end the guardianship. You will need to explain why the guardianship started and why it is no longer needed.
+  You will need to explain to the court why ending the guardianship is in your child's best interests.
 ---
 id: whats next
 continue button field: whats_next
@@ -198,11 +199,21 @@ question: |
 subquestion: |
   Once you download your forms, you must file them with the court. This program **does not file** your forms for you. When you file your forms, you will get a date for a court hearing where a judge will review your case.
 
-  After you file the *${ form_name }* and get a court date, you will need to give notice to the child's parents and close relatives. This ensures that everyone involved is aware of the case and has a chance to respond or appear in court.
+  After you file the *${ form_name }* and get a court date, you will need to give notice to the child's guardian and **{close relatives}**. This ensures that everyone involved is aware of the case and has a chance to respond or appear in court.
 
   Finally, you will need to attend a court hearing where a judge will consider the reasons why ending the guardianship is in the child's best interest.
   
-  **Note:** Filing forms, scheduling court dates, and giving notice are done differently depending on where you live. You may need to ask your local Circuit Clerk for details. To learn more, read the instructions you can download at the end of this program. 
+  **Note:** Filing forms, scheduling court dates, and giving notice are done differently depending on where you live. You may need to ask your local Circuit Clerk for details. To learn more, read the instructions you can download at the end of this program.
+terms:
+  - close relatives: |
+      This includes:
+      
+      * The child's parents,
+      * The child's adult siblings.
+      * The child's spouse,
+      * Any adult who lives with and takes care of the child,
+      * Anyone who has had custody of the child, and
+      * The child's "Guardian ad Litem," if one is assigned.
 ---
 id: child name
 question: |
@@ -225,7 +236,7 @@ event: ineligible_kickout
 question: |
   Sorry
 subquestion: |
-  You must be a parent trying to regain guardianship of a child to use this program.
+  You must be trying to regain parental responsibilities of a child to use this program.
 
   Click **Back** if you made a mistake, or you can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 buttons:
@@ -278,9 +289,9 @@ event: child_outside_illinois
 question: |
   Sorry
 subquestion: |
-  Based on your answers, ${child.name_full()} does not live in Illinois. This is a requirement for asking to discharge guardianship of a child in Illinois.
+  Based on your answers, ${child.name_full()} does not live in Illinois. This is a requirement for asking to end guardianship of a child in Illinois.
 
-  If you want to file for discharge outside Illinois, you can use the [**Legal Services Corporation website**](https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help) to find a legal aid organization in another state.
+  If you want to end a guardianship outside Illinois, you can use the [**Legal Services Corporation website**](https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help) to find a legal aid organization in another state.
 buttons:
   - Exit: exit
   - Restart: restart
@@ -291,7 +302,7 @@ id: current guardian name
 question: |
   Who is the current legal guardian of ${child.name_full()}?
 subquestion: |
-  This is the person who you want to stop being ${child.name_full()}'s guardian.
+  This is the person the court appointed as the plenary or long-term guardian of ${child.name_full()}. The petition this program makes will ask the court to have them stop being ${child.name_full()}'s guardian.
 fields:
   - code: |
       other_parties[0].name_fields()
@@ -300,7 +311,7 @@ code: |
   def get_address(person, child):
     if person.lives_with_child:
       person.address = child.address.copy_deep(person.attr_name('address'))
-      person.address.known = True
+      person.address_known = True
     else:
       person.address.address
     return
@@ -319,15 +330,6 @@ fields:
       states_list()
     default: IL
   - ZIP code: other_parties[0].address.zip
----
-id: guardian lives with child
-question: |
-  Does ${other_parties[0].name_full()} live with ${child.name_full()}?
-subquestion: |
-  If ${other_parties[0].name_full()} lives at ${child.address.on_one_line(bare=True)}, click **Yes**.
-fields:
-  - no label: other_parties[0].lives_with_child
-    datatype: yesnoradio
 ---
 id: guardianship date
 question: |
@@ -348,8 +350,23 @@ subquestion: |
 fields:
   - County: original_county_index
     datatype: integer
+    hide if: court_not_il
     code: |
       court_county_lookup()
+  - The court that appointed them was not in any of these counties.: court_not_il
+    datatype: yesnowide
+---
+id: court not illinois kickout
+event: court_not_il_kickout
+question: |
+  Sorry
+subquestion: |
+  Based on your answers, this guardianship was not ordered by an Illinois court. This program cannot be used to end a guardianship that began outside Illinois.
+
+  If you want to end a guardianship outside Illinois, you can use the [**Legal Services Corporation website**](https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help) to find a legal aid organization in another state.
+buttons:
+  - Exit: exit
+  - Restart: restart
 ---
 depends on:
   - original_county_index
@@ -378,8 +395,9 @@ question: |
 subquestion: |
   Explain why ${other_parties[0].name_full()} was appointed as ${child.name_full()}'s guardian. For example, there may have been a period of time when you were not available to provide care.
 fields:
-  - When the guardian was appointed, the circumstances were...: why_started
+  - The petition will include a sentence that starts, "When the guardian was appointed, the circumstances were...": why_started
     input type: area
+    rows: 6
     maxlength: 500
     label above field: True
 ---
@@ -389,28 +407,29 @@ question: |
 subquestion: |
   Explain why ${other_parties[0].name_full()} does not need to be ${child.name_full()}'s guardian. For example, you or another family member may now be available to care for ${child.name_full()}.
 fields:
-  - The new circumstances are...: why_end
+  - The petition will include a sentence that starts, "The new circumstances are...": why_end
+    rows: 6
     input type: area
     maxlength: 500
     label above field: True
 ---
-id: other relatives
-question: |
-  About ${child.name_full()}'s other relatives
-subquestion: |
-  People closely related to ${child.name_full()} will need to be notified about the discharge. These people include:
-
-  * ${child.name_full()}'s parents,
-  * ${child.name_full()}'s adult siblings.
-  * ${child.name_full()}'s spouse,
-  * An adult who lives with and takes care of ${child.name_full()},
-  * Anyone who has had custody of ${child.name_full()}, and
-  * ${child.name_full()}'s "Guardian ad Litem," if one is assigned.
-
-  You will need to list the names of anyone related to ${child.name_full()} in these ways.
-fields:
-  - Does ${child.name_full()} have other relatives who need to be notified?: other_relatives
-    datatype: yesnoradio
+#id: other relatives
+#question: |
+#  About ${child.name_full()}'s other relatives
+#subquestion: |
+#  People closely related to ${child.name_full()} will need to be notified about the petition. These people include:
+#
+#  * ${child.name_full()}'s parents,
+#  * ${child.name_full()}'s adult siblings.
+#  * ${child.name_full()}'s spouse,
+#  * An adult who lives with and takes care of ${child.name_full()},
+#  * Anyone who has had custody of ${child.name_full()}, and
+#  * ${child.name_full()}'s "Guardian ad Litem," if one is assigned.
+#
+#  You will need to list the names of anyone related to ${child.name_full()} in these ways.
+#fields:
+#  - Does ${child.name_full()} have other relatives who need to be notified?: other_relatives
+#    datatype: yesnoradio
 ---
 sets:
   - other_parties[i].name.first
@@ -437,11 +456,28 @@ content: |
 ---
 id: there is another other parties
 question: |
+  % if other_parties.number_gathered() == 1:
+  About ${child.name_full()}'s other relatives
+  % else:
   Do you need to notify anyone else?
+  % endif
 subquestion: |
+  % if other_parties.number_gathered() == 1:
+  People closely related to ${child.name_full()} will need to be notified about the petition. These people include:
+
+  * ${child.name_full()}'s parents,
+  * ${child.name_full()}'s adult siblings.
+  * ${child.name_full()}'s spouse,
+  * An adult who lives with and takes care of ${child.name_full()},
+  * Anyone who has had custody of ${child.name_full()}, and
+  * ${child.name_full()}'s "Guardian ad Litem," if one is assigned.
+
+  You will need to list the names of anyone related to ${child.name_full()} in these ways.
+  % else:
   So far you told us about ${fix_punctuation(other_parties.full_names())}
 
   ${collapse_template(list_reminder)}
+  % endif
 fields:
   - "Anyone else?": other_parties.there_is_another
     datatype: yesnoradio
@@ -466,7 +502,16 @@ question: |
 subquestion: |
   Earlier, you said ${child.name_full()} lives at ${child.address.on_one_line(bare=True)}. If ${other_parties[i].name_full()} also lives at that address, click **Yes**.
 fields:
-  - no label: other_parties[i].live_with
+  - no label: other_parties[i].lives_with_child
+    datatype: yesnoradio
+---
+id: guardian lives with child
+question: |
+  Does ${other_parties[0].name_full()} live with ${child.name_full()}?
+subquestion: |
+  If ${other_parties[0].name_full()} lives at ${child.address.on_one_line(bare=True)}, click **Yes**.
+fields:
+  - no label: other_parties[0].lives_with_child
     datatype: yesnoradio
 ---
 id: know other parties address
@@ -512,13 +557,13 @@ continue button field: x.notice_by_publication
 reconsider: True
 code: |
   temp_list = []
-  if other_relatives:
+  if other_parties.number_gathered() > 1:
     for index, party in enumerate(other_parties):
       if index == 0:
         if party.lives_with_child:
           temp_list.append(party)
       else:
-        if party.live_with:
+        if party.lives_with_child:
           temp_list.append(party)
   elif other_parties[0].lives_with_child:
     temp_list.append(other_parties[0])
@@ -552,6 +597,27 @@ fields:
   - ZIP code: other_parties[i].address.zip
     required: False
 ---
+id: about notice
+continue button field: about_notice
+question: |
+  Giving notice
+subquestion: |
+  You will need to give notice to ${other_parties[0].name_full()} and ${child.name_full()}'s **{close relatives}** that you are asking the court to end the guardianship. This ensures that everyone involved is aware of the case and has a chance to respond or appear in court.
+
+  To give them notice, you will have to give them copies of your petition and a *Notice of Court Date* form. Notice is done differently depending on where you file. Usually you can deliver the forms by hand or send them by certified mail.
+
+  The next screens will ask questions that will help you figure out who needs to be informed and how you can give them notice. At the end of this program, you can download the required forms and instructions to guide you through the next steps.
+terms:
+  - close relatives: |
+      This includes:
+      
+      * The child's parents,
+      * The child's adult siblings.
+      * The child's spouse,
+      * Any adult who lives with and takes care of the child,
+      * Anyone who has had custody of the child, and
+      * The child's "Guardian ad Litem," if one is assigned.
+---
 id: notice options for unknown address
 generic object: ALIndividual
 continue button field: x.notice_options
@@ -560,7 +626,7 @@ question: |
 subquestion: |  
   You should try and find ${x.name_full()}'s address or another way to give them notice. If you know their email address, you can give them notice by email.
 
-  If you cannot find a way to give ${x.name_full()} notice, the court may want you to publish notice of the discharge case in a newspaper. You may want to discuss this with a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  If you cannot find a way to give ${x.name_full()} notice, the court may want you to publish notice of the case in a newspaper. You may want to discuss this with a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 ---
 id: knows delivery method
 generic object: ALIndividual
@@ -569,7 +635,7 @@ question: |
 subquestion: |
   ${ collapse_template(delivery_method_help) }  
 
-  You must deliver the *Petition to Discharge Guardianship of a Minor* and the *Notice of Hearing* at least **7 days** before the court date. You must deliver paper copies of your forms. You cannot use email. 
+  You must deliver the *${form_name}* and the *Notice of Court Date* at least **7 days** before the court date. You must deliver paper copies of your forms. You cannot use email. 
 
   If you do not know this now, you can add it to the Proof of Delivery section of your forms later.
 fields:
@@ -662,7 +728,7 @@ generic object: ALIndividual
 question: |
   When will you send your forms to ${ x.name_full() }?
 subquestion: |
-  **Remember:** You must send the *Petition for Guardianship of a Minor* and the *Notice of Hearing* at least **7 days** before the court date.
+  **Remember:** You must send the *Petition for Guardianship of a Minor* and the *Notice of Court Date* at least **7 days** before the court date.
 
   If you do not know this now, be sure to add it to your forms later.
 fields:
@@ -687,20 +753,20 @@ validation code: |
 id: others agreement
 continue button field: others_agree
 question: |
-  % if other_relatives:
+  % if other_parties.number_gathered() > 1:
   About ${other_parties[0].name_full()} and the others
   % else:
   About ${other_parties[0].name_full()}
   % endif
 subquestion: |
-  % if other_relatives:
-  If ${other_parties.full_names(and_string=word("or"))} do not want the guardianship to be discharged, they may appear in court to tell the judge why.
+  % if other_parties.number_gathered() > 1:
+  If ${other_parties.full_names(and_string=word("or"))} do not want the guardianship to end, they may appear in court to tell the judge why.
 
-  If you think any of ${child.name_full()}'s relatives will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  If you think any of ${child.name_full()}'s relatives will disagree with ending the guardianship, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
   % else:
-  If ${other_parties[0].name_full()} does not want the guardianship to be discharged, they may appear in court to tell the judge why.
+  If ${other_parties[0].name_full()} does not want the guardianship to end, they may appear in court to tell the judge why.
 
-  If you think ${other_parties[0].name_full()} will disagree with the discharge, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  If you think ${other_parties[0].name_full()} will disagree with ending the guardianship, you may want a lawyer to help you. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
   % endif
 ---
 id: user name
@@ -825,7 +891,7 @@ code: |
     trial_court.address.county = "Cook"
   else:
     trial_court = court_list.as_court('trial_court', trial_court_index)
-  judicial_district_ordinal = str(trial_court.circuit)
+  #judicial_district_ordinal = str(trial_court.circuit)
   court_name = str(trial_court.name)
   court_street_address = str(trial_court.address.address)
   court_city = str(trial_court.address.city)
@@ -921,7 +987,6 @@ fields:
     show if:
       variable: hearing_type['remote']
       is: True
-
 ---
 template: hearing_info_help
 subject: |
@@ -930,6 +995,29 @@ content: |
   You can put information on how to attend court on the bottom of page 1 of the *Notice of Court Date*.
 
   We will add the courtroom address to your forms. To get the other information, contact your Circuit Clerk. You can look up how to contact them using [**Find Your Court**](https://www.illinoiscourts.gov/courts-directory/interactive-map/by-court-type/) on the Illinois Courts website.
+---
+id: e-signature
+question: |
+  Do you want to add your e-signature to your forms?
+subquestion: |  
+  This program can put “**/s/ ${users[0].name_full()}**” where you would sign your name. The court will accept this as your signature.
+
+  If you do not add your **{e-signature}** now, you must sign your paper forms before you file and deliver them.
+
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">What it means to sign your forms</h6>
+    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date</i>, and <i>Proof of Delivery</i> forms, you are certifying that:</p>
+    <p><ul>
+      <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
+      <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li>    </ul></p>
+  <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Illinois Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
+  </div>
+fields:
+  - "Add e-signature?": e_signature
+    datatype: yesnoradio
+terms:
+  - "e-signature": |
+      An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -947,10 +1035,9 @@ event: get_docs_screen
 question: |
   Download
 subquestion: |
-  
   Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
 
-  Read the **instructions** for next steps on how to use the forms and notify others about the discharge case. 
+  Read the instructions to learn what to do next.
   
   This program **does not file** your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
 
@@ -976,7 +1063,7 @@ under: |
 generic object: ALDocumentBundle
 template: x.send_email_template
 subject: |
-  Guardianship discharge forms
+  End guardianship of a child forms
 content: |
   Your forms are attached.
   
@@ -985,8 +1072,8 @@ content: |
   [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
-  - al_court_bundle: ALDocumentBundle.using(elements=[petition, notice, delivery_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, petition_bundle, notice_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
+  - al_court_bundle: ALDocumentBundle.using(elements=[petition_bundle, notice_bundle, order], filename="petition_to_discharge_guardianship.pdf", title="All forms")
 ---
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False, enabled=True)
@@ -999,17 +1086,22 @@ objects:
   - x.proof_of_delivery: ALDocument.using(title="Proof of Delivery", filename="proof_of_delivery.pdf", has_addendum=False)
 ---
 objects:
+  - petition_bundle: ALDocumentBundle.using(elements=[petition, delivery_bundle], title="Petition",filename="petition_to_discharge_guardianship.pdf", has_addendum=False, enabled=True)
+  - notice_bundle: ALDocumentBundle.using(elements=[notice, delivery_bundle], title="Notice",filename="notice.pdf", has_addendum=False, enabled=True)
+---
+objects:
   - delivery_bundle: ALDocumentBundle.using(elements=[], title= "Proof of Delivery", filename="proof_of_delivery.pdf", has_addendum=False)
 ---
 reconsider: True
 code: |
   deliveries_to_bundle = []
-  delivery_bundle.enabled = False
-  if other_relatives:
+  delivery_bundle.enabled = True
+  other_parties[0].proof_of_delivery.enabled = True
+  deliveries_to_bundle.append(other_parties[0].proof_of_delivery)
+  if other_parties.number_gathered() > 1:
     for index, party in enumerate(other_parties):
       if index != 0:
         party.proof_of_delivery.enabled = True
-        delivery_bundle.enabled = True
         deliveries_to_bundle.append(party.proof_of_delivery)
   delivery_bundle.elements = deliveries_to_bundle
   refresh_delivery_bundle = True
@@ -1162,21 +1254,22 @@ attachment:
       - "case_number__2": ${ case_number }   
       - "e_sign_name__1": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
-      - "document_name": ${"Petition to Discharge Guardianship of a Minor"}
+      - "document_name": ${"Petition to Discharge Guardianship of a Minor, Notice of Court Date for Motion"}
       - "delivery_party1_name_full": | 
           ${ x.name_full() }
-      - "delivery_party1_mail_address_on_one_line": ${ x.address.on_one_line(bare=True) if x.knows_delivery_method else "" }
-      - "delivery_party1_email": ${ x.delivery_email if x.knows_delivery_method else '' }
-      - "delivery_party1_email_efsp": ${ x.delivery_efsp_email if x.knows_delivery_method else '' }
-      - "is_delivery_party1_hand_yes": ${ x.hand_delivery if x.knows_delivery_method else '' }
-      - "is_delivery_party1_mail_yes": ${ x.mail_delivery if x.knows_delivery_method else '' }
-      - "is_delivery_party1_efm_yes": ${ x.efm_delivery if x.knows_delivery_method else '' }
-      - "is_delivery_party1_email_yes": ${ x.email_delivery if x.knows_delivery_method else '' }
-      - "delivery_party1_date": ${ x.delivery_date if x.knows_delivery_method and x.knows_delivery_date else '' }
-      - "delivery_party1_time": ${ format_time(x.delivery_time, format='h:mm a') if x.knows_delivery_method and x.knows_delivery_time else '' }
+      - "delivery_party1_mail_address_on_one_line": ${ x.address.on_one_line(bare=True) if x.address_known and x.knows_delivery_method else "" }
+      - "delivery_party1_email": ${ x.delivery_email if x.address_known and x.knows_delivery_method else '' }
+      - "delivery_party1_email_efsp": ${ x.delivery_efsp_email if x.address_known and x.knows_delivery_method else '' }
+      - "is_delivery_party1_hand_yes": ${ x.hand_delivery if x.address_known and x.knows_delivery_method else '' }
+      - "is_delivery_party1_mail_yes": ${ x.mail_delivery if x.address_known and x.knows_delivery_method else '' }
+      - "is_delivery_party1_efm_yes": ${ x.efm_delivery if x.address_known and x.knows_delivery_method else '' }
+      - "is_delivery_party1_email_yes": ${ x.email_delivery if x.address_known and x.knows_delivery_method else '' }
+      - "delivery_party1_date": ${ x.delivery_date if x.address_known and x.knows_delivery_method and x.knows_delivery_date else '' }
+      - "delivery_party1_time": ${ format_time(x.delivery_time, format='h:mm a') if x.address_known and x.knows_delivery_method and x.knows_delivery_time else '' }
       
-      - "is_delivery_party1_not_electronic": ${ True if x.knows_delivery_method else '' }
+      - "is_delivery_party1_not_electronic": ${ True if x.address_known and x.knows_delivery_method else '' }
       - "delivery_party1_mail_location": |
+          % if x.address_known:
           % if x.knows_delivery_method and x.mail_delivery:
           % if x.delivery_mail_address != "" and x.delivery_mail_city != "" and x.delivery_mail_state != "":
           ${x.delivery_mail_address }, ${x.delivery_mail_city}, ${ state_name(x.delivery_mail_state) }
@@ -1196,9 +1289,12 @@ attachment:
           % else:
           ${ "" }
           % endif
-      - "is_delivery_party1_jail_yes": ${ True if x.knows_delivery_method and x.jail_delivery else '' }
+          % else:
+          ${ "" }
+          % endif
+      - "is_delivery_party1_jail_yes": ${ True if x.address_known and x.knows_delivery_method and x.jail_delivery else '' }
       - "delivery_party1_jail_name": |
-          % if x.knows_delivery_method and x.jail_delivery:
+          % if x.address_known and x.knows_delivery_method and x.jail_delivery:
           % if x.delivery_jail_name != "" and x.jail_delivery_address.address != "" and x.jail_delivery_address.city != "" and x.jail_delivery_address.state != "":
           ${ x.delivery_jail_name }, ${ x.jail_delivery_address.on_one_line(bare=True)}
           % elif x.delivery_jail_name == "":
@@ -1316,10 +1412,10 @@ question: |
 subquestion: |
   Edit your answers below.
 review:
-  - Edit: other_relatives
-    button: |
-      **Does ${child.name_full()} have other relatives who need to be notified?**
-      ${word(yesno(other_relatives))}
+  #- Edit: other_relatives
+  #  button: |
+  #    **Does ${child.name_full()} have other relatives who need to be notified?**
+  #    ${word(yesno(other_relatives))}
   - Edit: other_parties.revisit
     button: |
       **${child.name_full()}'s parents, caregivers, and relatives:**
@@ -1327,7 +1423,6 @@ review:
       % for party in other_parties:
       * ${party.name_full()}
       % endfor
-    show if: other_relatives
 ---
 id: other parties review screen
 section: Child's parents, caregivers, and relatives
@@ -1375,24 +1470,25 @@ review:
       % else:
       A person with a relationship to ${child.name_full()} other than parent, adult sibling, custodian, spouse, or Guardian at Litem.
       % endif
-  - Edit: x.live_with
+  - Edit: x.lives_with_child
     button: |
       **Does ${x.name_full()} live with ${child.name_full()}?**
-      ${word(yesno(x.live_with))}
+      ${word(yesno(x.lives_with_child))}
   - Edit: x.address_known
     button: |
       **Do you know ${x.name_full()}'s address?**
       ${word(yesno(x.address_known))}
-    show if: not x.live_with
+    show if: not x.lives_with_child
   - Edit: x.address.address
     button: |
       **${x.name_full()}'s address:**
       ${x.address.on_one_line(bare=True)}
-    show if: x.address_known and not x.live_with
+    show if: x.address_known and not x.lives_with_child
   - Edit: x.knows_delivery_method
     button: |
       **Do you know how and when you will send your forms to ${x.name_full() }?**
       ${word(yesno(x.knows_delivery_method))}
+    show if: x.address_known 
   - Edit: x.mail_delivery
     button: |
       **Delivery by: (Edit to view and change details)**
@@ -1409,7 +1505,7 @@ review:
       % if x.mail_delivery != True and x.hand_delivery != True and x.jail_delivery != True:
         * None entered
       % endif
-    show if: x.knows_delivery_method
+    show if: x.address_known and x.knows_delivery_method
   - Edit: x.delivery_date
     button: |
       **Delivery on:**
@@ -1420,7 +1516,7 @@ review:
       % else:
       I don't know.
       % endif
-    show if: x.knows_delivery_method
+    show if: x.address_known and x.knows_delivery_method
 ---
 id: user review screen
 section: About you
@@ -1544,6 +1640,10 @@ review:
       None entered
       % endif
     show if: hearing_type['remote'] == True and has_court_date 
+  - Edit: e_signature
+    button: |
+      **Do you want to add your e-signature to your forms?**
+      ${ word(yesno(e_signature)) }
 ---
 id: review screen
 event: review_answers
@@ -1638,10 +1738,10 @@ review:
     show if: other_parties[0].knows_delivery_method
   - note: |
       <h4>Child's parents, caregivers, and relatives</h4>
-  - Edit: other_relatives
-    button: |
-      **Does ${child.name_full()} have other relatives who need to be notified?**
-      ${word(yesno(other_relatives))}
+  #- Edit: other_relatives
+  #  button: |
+  #    **Does ${child.name_full()} have other relatives who need to be notified?**
+  #    ${word(yesno(other_relatives))}
   - Edit: other_parties.revisit
     button: |
       **${child.name_full()}'s parents, caregivers, and relatives:**
@@ -1649,7 +1749,6 @@ review:
       % for party in other_parties:
       * ${party.name_full()}
       % endfor
-    show if: other_relatives
   - note: |
       <h4>About you</h4>
   - Edit: users[0].name.first
@@ -1759,3 +1858,7 @@ review:
       None entered
       % endif
     show if: hearing_type['remote'] == True and has_court_date 
+  - Edit: e_signature
+    button: |
+      **Do you want to add your e-signature to your forms?**
+      ${ word(yesno(e_signature)) }
