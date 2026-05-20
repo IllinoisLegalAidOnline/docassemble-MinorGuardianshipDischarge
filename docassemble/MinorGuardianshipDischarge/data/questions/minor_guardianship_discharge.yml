@@ -59,7 +59,7 @@ code: |
   other_parties[0].name.first
   get_address(other_parties[0], child)
   guardianship_date
-  if court_not_il:
+  if not court_in_il:
     court_not_il_kickout
   case_number
   why_started
@@ -186,9 +186,9 @@ continue button field: basic_info
 question: |
   About ending a guardianship
 subquestion: |
-  Your child's guardian is the person a judge has appointed to care for and make decisions for your child. A guardian appointed by a court order is also known as a "plenary guardian."
+  Your child's guardian is the person a judge has appointed to care for and make decisions for your child. A long-term, permanent guardian is called a plenary guardian. A plenary guardianship can only end by court order or once the child turns 18. 
 
-  You can use this program if your child has a court-appointed guardian and you are a legal parent of your child. If your child has a short-term guardian, you do not need to use this program.
+  You can use this program if your child has a court-appointed plenary guardian and you are a legal parent of your child. If your child has a short-term guardian or a standby guardian, you do not need to use this program.
 
   You will need to explain to the court why ending the guardianship is in your child's best interests.
 ---
@@ -236,7 +236,7 @@ event: ineligible_kickout
 question: |
   Sorry
 subquestion: |
-  You must be trying to regain parental responsibilities of a child to use this program.
+  You must be trying to regain parental responsibilities of your child to use this program.
 
   Click **Back** if you made a mistake, or you can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 buttons:
@@ -302,7 +302,7 @@ id: current guardian name
 question: |
   Who is the current legal guardian of ${child.name_full()}?
 subquestion: |
-  This is the person the court appointed as the plenary or long-term guardian of ${child.name_full()}. The petition this program makes will ask the court to have them stop being ${child.name_full()}'s guardian.
+  This is the person the court appointed as the plenary (long-term) guardian of ${child.name_full()}. The petition this program makes will ask the court to end their guardianship.
 fields:
   - code: |
       other_parties[0].name_fields()
@@ -313,7 +313,8 @@ code: |
       person.address = child.address.copy_deep(person.attr_name('address'))
       person.address_known = True
     else:
-      person.address.address
+      if person.address_known:
+        person.address.address
     return
 ---
 id: guardian address
@@ -344,17 +345,17 @@ fields:
 ---
 id: original county
 question: |
-  In which county is the court that appointed ${other_parties[0].name_full()} as guardian?
-subquestion: |
-  This may or may not be a different county than the one ${other_parties[0].name_full()} lives in
+  Was ${other_parties[0].name_full()} appointed guardian in Illinois?
 fields:
-  - County: original_county_index
+  - no label: court_in_il
+    datatype: yesnoradio
+  - In which county were they appointed guardian?: original_county_index
     datatype: integer
-    hide if: court_not_il
+    show if: court_in_il
+    help: |
+      This may or may not be the same county as the one ${other_parties[0].name_full()} lives in.
     code: |
       court_county_lookup()
-  - The court that appointed them was not in any of these counties.: court_not_il
-    datatype: yesnowide
 ---
 id: court not illinois kickout
 event: court_not_il_kickout
@@ -395,9 +396,9 @@ question: |
 subquestion: |
   Explain why ${other_parties[0].name_full()} was appointed as ${child.name_full()}'s guardian. For example, there may have been a period of time when you were not available to provide care.
 fields:
-  - The petition will include a sentence that starts, "When the guardian was appointed, the circumstances were...": why_started
+  - "The petition will include a sentence that starts,[NEWLINE]**When the guardian was appointed, the circumstances were...**": why_started
     input type: area
-    rows: 6
+    rows: 8
     maxlength: 500
     label above field: True
 ---
@@ -407,8 +408,8 @@ question: |
 subquestion: |
   Explain why ${other_parties[0].name_full()} does not need to be ${child.name_full()}'s guardian. For example, you or another family member may now be available to care for ${child.name_full()}.
 fields:
-  - The petition will include a sentence that starts, "The new circumstances are...": why_end
-    rows: 6
+  - "The petition will include a sentence that starts,[NEWLINE]**The new circumstances are...**": why_end
+    rows: 8
     input type: area
     maxlength: 500
     label above field: True
@@ -536,22 +537,17 @@ fields:
   - ZIP code: other_parties[i].address.zip
     required: False
 ---
+#Flagged for SME: The Guardianship of a child Easy Form has a specific template in its form suite for notice by publication, but there is not one for discharge. Cook County does have [**a form for this purpose**](https://services.cookcountyclerkofcourt.org/forms/Forms/pdf_files/CCJP0680.pdf), though. I will ask a SME or LCM what the legal requirements are and how we should handle it in this Easy Form.
 id: notice options for unknown address
 generic object: ALIndividual
 question: |
   Notice by publication
 subquestion: |  
-  **Flagged for SME** The following language comes from the Guardianship of a child Easy Form, which has a specific template in its form suite for notice by publication. Cook County does have [**a form for this purpose**](https://services.cookcountyclerkofcourt.org/forms/Forms/pdf_files/CCJP0680.pdf), though. I will ask a SME or LCM what the legal requirements are and how we should handle it in this Easy Form.
-  
-  If you cannot find ${x.name_full()}'s address to notify them in person or by mail, you will have to give them notice of the guardianship by publishing in a newspaper. You can use a *Statement in Support of Notice by Publication* to show the judge that you tried to find them.
+  If you cannot find ${x.name_full()}'s address to notify them in person or by mail, you will have to give them notice of the guardianship by publishing in a newspaper.
 
-  How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. Ask the Circuit Clerk about the process in your county. If you need to provide the information to the newspaper, use the *Minor Guardianship Publication Information for Newspaper* form.
-  
-  The newspaper must print the notice at least once a week for three weeks in a row. The date it is first published must be at least 30 days before the court date. In order to prevent a problem, get a court date at least 45 days later. That will give the newspaper 15 days to get the first notice published.
+  How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. You can visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) to ask about the process in your county, or you can call or text (833) 411-1121 for assistance.
 
-  If you receive a Certificate of Publication from the newspaper, file the Certificate with the Clerk.
-
-  You can download the forms you need at the end of this program, along with instructions that will explain the process.
+  This program will make a *Proof of Delivery* form for ${x.name_full()}. If you find out what their address is later, you can add their address to the form.
 continue button field: x.notice_by_publication
 ---
 reconsider: True
@@ -1006,11 +1002,18 @@ subquestion: |
 
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">What it means to sign your forms</h6>
-    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date</i>, and <i>Proof of Delivery</i> forms, you are certifying that:</p>
+    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date for Motion</i>, and <i>Proof of Delivery</i> forms, you are certifying that:</p>
     <p><ul>
       <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
       <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li>    </ul></p>
   <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Illinois Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
+  <p>By signing your <i>Notice of Court Date for Motion</i> form, you are certifying that:</p>
+    <p><ul>
+      <li>You read the document,</li>
+      <li>You have been informed and believe it is true and correct, and</li>
+      <li>You are not it  to cause delay or for another bad reason.</li>
+    </ul></p>
+    <p>See the <a href="https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/9ce1fce9-895f-463e-b87d-f9b7631f8fde/Rule%20137.pdf"><b>Illinois Supreme Court Rule 137</b></a> for more information.</p>
   </div>
 fields:
   - "Add e-signature?": e_signature
@@ -1134,7 +1137,8 @@ attachment:
   fields:
       - "trial_court_county": ${ trial_court.address.county }
       - "plaintiffs": ${ users[0].name_full() }
-      - "defendants": ${other_parties[0].name_full()}
+      - "defendants": |
+          In re: The estate of ${child.name_full()}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user__3": ${ users[0].name_full() }
@@ -1244,7 +1248,8 @@ attachment:
   fields:
       - "trial_court_county": ${trial_court.address.county}
       - "plaintiffs": ${ users[0].name_full() }   
-      - "defendant_list": ${ x.name_full() } 
+      - "defendant_list": |
+          In re: The estate of ${child.name_full()}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user_mail_address_one_line__1": ${ users[0].address.on_one_line(bare=True) }
