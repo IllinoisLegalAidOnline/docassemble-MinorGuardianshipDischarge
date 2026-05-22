@@ -317,6 +317,18 @@ code: |
         person.address.address
     return
 ---
+code: |
+  def underlined_case_number(number):
+    if len(number) > 14:
+      return number
+    else:
+      lines_needed = 15 - len(number)
+      line_text = ""
+      while lines_needed > 0:
+        line_text = line_text + "_"
+        lines_needed -= 1
+      return number + line_text
+---
 id: guardian address
 question: |
   What is ${other_parties[0].name_full()}'s current address?
@@ -346,6 +358,8 @@ fields:
 id: original county
 question: |
   Was ${other_parties[0].name_full()} appointed guardian in Illinois?
+subquestion: |
+  If the court that ordered the guardianship was not in Illinois, you should click **No** even if ${other_parties[0].name_full()} lives in Illinois. 
 fields:
   - no label: court_in_il
     datatype: yesnoradio
@@ -353,7 +367,7 @@ fields:
     datatype: integer
     show if: court_in_il
     help: |
-      This may or may not be the same county as the one ${other_parties[0].name_full()} lives in.
+      You should pick the county where the court that ordered the guardianship is. This may or may not be the same county as the one ${other_parties[0].name_full()} lives in.
     code: |
       court_county_lookup()
 ---
@@ -545,9 +559,9 @@ question: |
 subquestion: |  
   If you cannot find ${x.name_full()}'s address to notify them in person or by mail, you will have to give them notice of the guardianship by publishing in a newspaper.
 
-  How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. You can visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) to ask about the process in your county, or you can call or text (833) 411-1121 for assistance.
+  How you ask a newspaper to publish notice of the guardianship varies. You can ask the Circuit Clerk how to publish notice. In some counties, the Circuit Clerk will send the case information to the newspaper. You can also visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) to ask about the process in your county, or you can call or text (833) 411-1121 for assistance.
 
-  This program will make a *Proof of Delivery* form for ${x.name_full()}. If you find out what their address is later, you can add their address to the form.
+  This program will make a *Proof of Delivery* form for ${x.name_full()}. If you find out what their address is later, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
 continue button field: x.notice_by_publication
 ---
 reconsider: True
@@ -1002,7 +1016,7 @@ subquestion: |
 
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">What it means to sign your forms</h6>
-    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date for Motion</i>, and <i>Proof of Delivery</i> forms, you are certifying that:</p>
+    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date for Motion</i>, and Proof of Delivery sections of the forms, you are certifying that:</p>
     <p><ul>
       <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
       <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li>    </ul></p>
@@ -1137,8 +1151,7 @@ attachment:
   fields:
       - "trial_court_county": ${ trial_court.address.county }
       - "plaintiffs": ${ users[0].name_full() }
-      - "defendants": |
-          In re: The estate of ${child.name_full()}
+      - "defendants": ${other_parties[0].name_full()}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user__3": ${ users[0].name_full() }
@@ -1156,8 +1169,8 @@ attachment:
       - "e_sign_name__2": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
       - "for_self_2": ${True}      
-      - "motion_summary": ${ "Petition to Discharge Guardianship of a Minor"}
-
+      - "motion_summary": |
+          In re: the estate of ${child.name_full()}
       - "hearing_date": ${ "" }
       - "hearing_time": ${ "" }
       - "hearing_am_checkbox": ${ ""}
@@ -1248,8 +1261,7 @@ attachment:
   fields:
       - "trial_court_county": ${trial_court.address.county}
       - "plaintiffs": ${ users[0].name_full() }   
-      - "defendant_list": |
-          In re: The estate of ${child.name_full()}
+      - "defendant_list": ${other_parties[0].name_full()}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user_mail_address_one_line__1": ${ users[0].address.on_one_line(bare=True) }
@@ -1259,7 +1271,8 @@ attachment:
       - "case_number__2": ${ case_number }   
       - "e_sign_name__1": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
-      - "document_name": ${"Petition to Discharge Guardianship of a Minor, Notice of Court Date for Motion"}
+      - "document_name": |
+          In re: The estate of ${child.name_full()}, Notice of Court Date for Motion
       - "delivery_party1_name_full": | 
           ${ x.name_full() }
       - "delivery_party1_mail_address_on_one_line": ${ x.address.on_one_line(bare=True) if x.address_known and x.knows_delivery_method else "" }
