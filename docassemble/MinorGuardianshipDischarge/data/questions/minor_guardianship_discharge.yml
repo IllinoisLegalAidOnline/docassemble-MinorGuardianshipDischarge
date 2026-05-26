@@ -1,7 +1,7 @@
 metadata:
   title: End guardianship of a child
   short title: End guardianship of a child
-  comment: This program helps you ask the court to end the guardianship of a child.
+  comment: This Easy Form helps you ask the court to end the guardianship of a child.
   authors:
     - Vivian McNaughton
 ---
@@ -559,9 +559,9 @@ question: |
 subquestion: |  
   If you cannot find ${x.name_full()}'s address to notify them in person or by mail, you will have to give them notice of the guardianship by publishing in a newspaper.
 
-  How you ask a newspaper to publish notice of the guardianship varies. You can ask the Circuit Clerk how to publish notice. In some counties, the Circuit Clerk will send the case information to the newspaper. You can also visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) to ask about the process in your county, or you can call or text (833) 411-1121 for assistance.
+  How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. In others, you might have to send the information to the newspaper yourself. Ask the Circuit Clerk how to publish notice. You can also visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) or call or text (833) 411-1121 to ask about the process in your county.
 
-  This program will make a *Proof of Delivery* form for ${x.name_full()}. If you find out what their address is later, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
+  If you find out what ${x.name_full()}'s address is later, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
 continue button field: x.notice_by_publication
 ---
 reconsider: True
@@ -1016,7 +1016,7 @@ subquestion: |
 
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">What it means to sign your forms</h6>
-    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, <i>Notice of Court Date for Motion</i>, and Proof of Delivery sections of the forms, you are certifying that:</p>
+    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, and Proof of Delivery sections of the forms, you are certifying that:</p>
     <p><ul>
       <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
       <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li>    </ul></p>
@@ -1150,8 +1150,9 @@ attachment:
   pdf template file: notice_of_court_date.pdf
   fields:
       - "trial_court_county": ${ trial_court.address.county }
-      - "plaintiffs": ${ users[0].name_full() }
-      - "defendants": ${other_parties[0].name_full()}
+      - "plaintiffs": |
+          The estate of ${child.name_full()}
+      - "defendants": ${""}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user__3": ${ users[0].name_full() }
@@ -1169,8 +1170,7 @@ attachment:
       - "e_sign_name__2": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
       - "for_self_2": ${True}      
-      - "motion_summary": |
-          In re: the estate of ${child.name_full()}
+      - "motion_summary": ${ "Petition to Discharge Guardianship of a Minor"}
       - "hearing_date": ${ "" }
       - "hearing_time": ${ "" }
       - "hearing_am_checkbox": ${ ""}
@@ -1260,8 +1260,9 @@ attachment:
   pdf template file: aoic_proof_of_delivery.pdf
   fields:
       - "trial_court_county": ${trial_court.address.county}
-      - "plaintiffs": ${ users[0].name_full() }   
-      - "defendant_list": ${other_parties[0].name_full()}
+      - "plaintiffs": |
+          The estate of ${child.name_full()} 
+      - "defendant_list": ${""}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
       - "user_mail_address_one_line__1": ${ users[0].address.on_one_line(bare=True) }
@@ -1271,8 +1272,7 @@ attachment:
       - "case_number__2": ${ case_number }   
       - "e_sign_name__1": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
-      - "document_name": |
-          In re: The estate of ${child.name_full()}, Notice of Court Date for Motion
+      - "document_name": ${"Petition to Discharge Guardianship of a Minor, Notice of Court Date for Motion"}
       - "delivery_party1_name_full": | 
           ${ x.name_full() }
       - "delivery_party1_mail_address_on_one_line": ${ x.address.on_one_line(bare=True) if x.address_known and x.knows_delivery_method else "" }
