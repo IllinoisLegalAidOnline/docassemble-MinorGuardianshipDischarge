@@ -561,7 +561,7 @@ subquestion: |
 
   How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. In others, you might have to send the information to the newspaper yourself. Ask the Circuit Clerk how to publish notice. You can also visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) or call or text (833) 411-1121 to ask about the process in your county.
 
-  If you find out what ${x.name_full()}'s address is later, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
+  If you find out ${x.name_full()}'s address, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
 continue button field: x.notice_by_publication
 ---
 reconsider: True
@@ -1016,7 +1016,7 @@ subquestion: |
 
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">What it means to sign your forms</h6>
-    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i>, and Proof of Delivery sections of the forms, you are certifying that:</p>
+    <p>By signing the <i>Petition to Discharge Guardianship of a Minor</i> and Proof of Delivery sections of the forms, you are certifying that:</p>
     <p><ul>
       <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
       <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li>    </ul></p>
@@ -1151,7 +1151,7 @@ attachment:
   fields:
       - "trial_court_county": ${ trial_court.address.county }
       - "plaintiffs": |
-          The estate of ${child.name_full()}
+          The Estate of ${child.name_full()}
       - "defendants": ${""}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
@@ -1170,7 +1170,7 @@ attachment:
       - "e_sign_name__2": ${ users[0].name_full() if e_signature else '' }
       - "for_self": ${True}
       - "for_self_2": ${True}      
-      - "motion_summary": ${ "Petition to Discharge Guardianship of a Minor"}
+      - "motion_summary": ${ "Petition to Discharge Guardianship of a Minor, Notice of Court Date for Motion"}
       - "hearing_date": ${ "" }
       - "hearing_time": ${ "" }
       - "hearing_am_checkbox": ${ ""}
@@ -1185,7 +1185,7 @@ attachment:
       - "clerk_phone": ${ "" }
       - "clerk_website": ${ "" }
         
-      - "document_name": ${ "Petition for Rule to Show Cause and for Finding of Indirect Civil Contempt"}
+      - "document_name": ${ "Petition to Discharge Guardianship of a Minor, Notice of Court Date for Motion"}
       - "delivery_party1_name_full": | 
           ${ other_parties[0].name_full() }
       - "delivery_party1_mail_address_on_one_line": ${ other_parties[0].address.on_one_line(bare=True) }
@@ -1261,7 +1261,7 @@ attachment:
   fields:
       - "trial_court_county": ${trial_court.address.county}
       - "plaintiffs": |
-          The estate of ${child.name_full()} 
+          The Estate of ${child.name_full()} 
       - "defendant_list": ${""}
       - "user__1": ${ users[0].name_full() }
       - "user__2": ${ users[0].name_full() }
