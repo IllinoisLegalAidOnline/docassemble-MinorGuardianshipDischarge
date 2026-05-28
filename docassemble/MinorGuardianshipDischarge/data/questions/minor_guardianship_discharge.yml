@@ -561,7 +561,7 @@ subquestion: |
 
   How you ask a newspaper to publish notice of the guardianship varies. In some counties, the Circuit Clerk will send the case information to the newspaper. In others, you might have to send the information to the newspaper yourself. Ask the Circuit Clerk how to publish notice. You can also visit [**Illinois Court Help**](https://www.ilcourthelp.gov/) or call or text (833) 411-1121 to ask about the process in your county.
 
-  If you find out ${x.name_full()}'s address, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
+  If you find ${x.name_full()}'s address, you can add it to the Proof of Delivery section of your forms. Be sure to deliver the forms to ${x.name_full()} the way you list on the forms.
 continue button field: x.notice_by_publication
 ---
 reconsider: True
